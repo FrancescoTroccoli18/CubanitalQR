@@ -1,0 +1,13 @@
+streamlit 
+qrcode[pil]
+cryptography
+pandas 
+pillow 
+opencv-python 
+streamlit-webrtc
+pyngrok
+streamlit-autorefresh
+filelock
+pyodbc
+psycopg2-binary
+supabase

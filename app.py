@@ -1,0 +1,185 @@
+import streamlit as st
+from supabase import create_client
+import base64, json
+from datetime import datetime
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+import qrcode
+from io import BytesIO
+from PIL import Image
+from streamlit_autorefresh import st_autorefresh
+
+# ------------------ CONFIG ------------------
+SUPABASE_URL = "https://kwzoutbgvqadmlcmbauq.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3em91dGJndnFhZG1sY21iYXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyNTA4MjYsImV4cCI6MjA3NTgyNjgyNn0.Kf9IURiE9CMhDmJvjVg-Jy7zXJx3kiHGypmyo4dCscs"
+BASE_URL = "https://YOUR_STREAMLIT_APP_URL"  # Streamlit Cloud URL
+PASSPHRASE = "MySecretKey12345"
+KDF_SALT = b"fixed_salt_2025"
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# ------------------ CRITTOGRAFIA ------------------
+def derive_fernet_key(passphrase: str) -> bytes:
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=KDF_SALT,
+        iterations=390000,
+        backend=default_backend(),
+    )
+    return base64.urlsafe_b64encode(kdf.derive(passphrase.encode()))
+
+def encrypt_payload(payload_bytes: bytes) -> bytes:
+    f = Fernet(derive_fernet_key(PASSPHRASE))
+    return f.encrypt(payload_bytes)
+
+def decrypt_payload(token_bytes: bytes) -> bytes:
+    f = Fernet(derive_fernet_key(PASSPHRASE))
+    return f.decrypt(token_bytes)
+
+def generate_qr_from_text(text: str) -> Image.Image:
+    qr = qrcode.QRCode(box_size=10, border=4)
+    qr.add_data(text)
+    qr.make(fit=True)
+    return qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+# ------------------ DB UTILITY ------------------
+def fetch_all_users():
+    rows = supabase.table("Utenti").select("*").order("Id", desc=True).execute()
+    return rows.data
+
+def add_user_sql(record):
+    # Inserisci utente
+    result = supabase.table("Utenti").insert({
+        "Tipo": record["tipo"],
+        "Nome": record["nome"],
+        "Cognome": record["cognome"],
+        "Telefono": record["telefono"],
+        "Email": record["email"],
+        "Token": record["token"],
+        "QrBase64": record["qr_base64"],
+        "Checked": False,
+    }).execute()
+    user_id = result.data[0]["Id"]
+
+    # Inserisci CheckinLog
+    supabase.table("CheckinLog").insert({
+        "UserId": user_id,
+        "Checked": False,
+        "CheckedAt": None
+    }).execute()
+    return user_id
+
+def do_checkin_sql(user_id, checked=True):
+    supabase.table("CheckinLog").update({
+        "Checked": checked,
+        "CheckedAt": datetime.utcnow() if checked else None
+    }).eq("UserId", user_id).execute()
+
+    supabase.table("Utenti").update({
+        "Checked": checked,
+        "CheckedAt": datetime.utcnow() if checked else None
+    }).eq("Id", user_id).execute()
+
+# ------------------ STREAMLIT ------------------
+st.set_page_config(page_title="QR Check-in", layout="wide")
+PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR"]
+page = st.sidebar.selectbox("Menu", PAGES)
+
+# --- LISTA PARTECIPANTI (versione filtrabile e refreshabile) ---
+if page == "Lista partecipanti":
+    st_autorefresh(interval=5000, key="refresh")
+    st.header("📋 Lista partecipanti")
+    rows = fetch_all_users()
+    if not rows:
+        st.warning("Nessun partecipante registrato.")
+    else:
+        # Filtri
+        col1, col2 = st.columns([1,1])
+        with col1:
+            tipi_disponibili = sorted(list(set(r["Tipo"] for r in rows)))
+            tipi_disponibili.insert(0, "Tutti")
+            filtro_tipo = st.selectbox("Tipo", tipi_disponibili)
+        with col2:
+            filtro_checked = st.selectbox("Stato", ["Tutti","Checkati","Non checkati"])
+        # Applica filtri
+        if filtro_tipo != "Tutti":
+            rows = [r for r in rows if r["Tipo"] == filtro_tipo]
+        if filtro_checked == "Checkati":
+            rows = [r for r in rows if r["Checked"]]
+        elif filtro_checked == "Non checkati":
+            rows = [r for r in rows if not r["Checked"]]
+        rows.sort(key=lambda x: (x["CheckedAt"] is not None, x["CheckedAt"] or datetime.min))
+
+        header_cols = st.columns([2,2,3,2,2,1,1])
+        headers = ["Nome","Cognome","Email","Telefono","Tipo","Checked","Elimina"]
+        for col, title in zip(header_cols, headers):
+            col.markdown(f"**{title}**")
+
+        for r in rows:
+            cols = st.columns([2,2,3,2,2,1,1])
+            user_id = r["Id"]
+            cols[0].write(r["Nome"])
+            cols[1].write(r["Cognome"])
+            cols[2].write(r["Email"])
+            cols[3].write(r["Telefono"])
+            cols[4].write(r["Tipo"])
+            chk_key = f"chk_{user_id}"
+            checked_from_db = r["Checked"]
+            if chk_key not in st.session_state or st.session_state[chk_key] != checked_from_db:
+                st.session_state[chk_key] = checked_from_db
+            new_val = cols[5].checkbox("", key=chk_key)
+            if new_val != st.session_state[chk_key]:
+                do_checkin_sql(user_id, new_val)
+                st.session_state[chk_key] = new_val
+                st.rerun()
+            if cols[6].button("🗑️", key=f"del_{user_id}"):
+                supabase.table("Utenti").delete().eq("Id", user_id).execute()
+                st.rerun()
+
+# --- GENERA QR ---
+elif page == "Genera QR":
+    st.header("🎫 Genera QR per partecipante")
+    nome = st.text_input("Nome")
+    cognome = st.text_input("Cognome")
+    telefono = st.text_input("Telefono")
+    email = st.text_input("Email")
+    tipo = st.selectbox("Tipo di pass", ["FullPack","FullPass"])
+    if st.button("Genera QR"):
+        if not (nome and cognome and email):
+            st.error("Inserisci Nome, Cognome ed Email.")
+        else:
+            payload = {
+                "tipo": tipo,
+                "nome": nome,
+                "cognome": cognome,
+                "telefono": telefono,
+                "email": email,
+                "created_at": datetime.utcnow().isoformat()+"Z",
+            }
+            token_bytes = encrypt_payload(json.dumps(payload).encode())
+            token_str = base64.urlsafe_b64encode(token_bytes).decode()
+            url = f"{BASE_URL}?token={token_str}"
+            img = generate_qr_from_text(url)
+
+            buf = BytesIO()
+            img.save(buf, format="PNG")
+            qr_base64 = base64.b64encode(buf.getvalue()).decode()
+
+            # Carica QR su Supabase Storage
+            supabase.storage.from_("partecipanti").upload(f"qr_{nome}_{cognome}.png", buf.getvalue(), {"content-type":"image/png"})
+
+            record = {
+                "tipo": tipo,
+                "nome": nome,
+                "cognome": cognome,
+                "telefono": telefono,
+                "email": email,
+                "token": token_str,
+                "qr_base64": qr_base64,
+            }
+            add_user_sql(record)
+            st.image(img, width=200)
+            st.success(f"✅ QR creato per {nome} {cognome}")
