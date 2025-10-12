@@ -261,11 +261,12 @@ elif page == "Visualizza QR":
             
             # Decodifica base64 e crea immagine
             try:
-                qr_bytes = base64.b64decode(user["qr_base64"])
+                qr_bytes = base64.b64decode(user["qrbase64"])
                 img = Image.open(BytesIO(qr_bytes))
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
