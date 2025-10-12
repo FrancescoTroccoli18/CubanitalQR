@@ -221,8 +221,16 @@ if page == "Lista partecipanti":
                 st.session_state[chk_key] = new_val
                 st.rerun()
             if cols[6].button("🗑️", key=f"del_{user_id}"):
-                supabase.table("utenti").delete().eq("id", user_id).execute()
-                st.rerun()
+                try:
+                    # Elimina prima i record correlati nella tabella checkinlog
+                    supabase.table("checkinlog").delete().eq("userid", user_id).execute()
+                    # Poi elimina l'utente
+                    supabase.table("utenti").delete().eq("id", user_id).execute()
+                    st.success("Utente eliminato ✅")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Errore nella cancellazione dell'utente: {e}")
+
 
 # --- GENERA QR ---
 elif page == "Genera QR":
@@ -283,6 +291,7 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
