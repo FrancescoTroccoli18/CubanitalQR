@@ -86,6 +86,24 @@ def do_checkin_sql(user_id, checked=True):
     }).eq("id", user_id).execute()
 
 # ------------------ STREAMLIT ------------------
+# ------------------ LOGIN HARD-CODED ------------------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.header("🔐 Login Admin")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    if st.button("Login"):
+        if username == "cubanital" and password == "Kabiosile!":
+            st.session_state.logged_in = True
+            st.success("✅ Login effettuato")
+            st.experimental_rerun()
+        else:
+            st.error("❌ Username o password errati")
+    st.stop()  # blocca tutto il resto dell'app se non loggato
+
+# --- Streamlit page config e menu ---
 st.set_page_config(page_title="QR Check-in", layout="wide")
 PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR", "Visualizza QR"]
 page = st.sidebar.selectbox("Menu", PAGES)
@@ -93,25 +111,7 @@ page = st.sidebar.selectbox("Menu", PAGES)
 # --- CHECK-IN AUTOMATICO CON LOGIN ---
 if page == "Check-in automatico":
     st.header("📲 Check-in automatico")
-
-    # Login hardcoded
-    if "logged_in" not in st.session_state:
-        st.session_state.logged_in = False
-
-    if not st.session_state.logged_in:
-        st.subheader("🔐 Login Admin")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
-            if username == "cubanital" and password == "Kabiosile!":
-                st.session_state.logged_in = True
-                st.success("✅ Login effettuato")
-                st.experimental_rerun()
-            else:
-                st.error("❌ Username o password errati")
-        st.stop()  # ferma qui se non loggato
-
-    # Da qui in poi sei loggato
+    
     token_param = st.experimental_get_query_params().get("token")
 
     if token_param:
@@ -265,6 +265,7 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
