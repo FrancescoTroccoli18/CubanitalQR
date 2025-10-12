@@ -101,26 +101,34 @@ if page == "Check-in automatico":
             token_bytes = base64.urlsafe_b64decode(token_param[0])
             payload = json.loads(decrypt_payload(token_bytes).decode("utf-8"))
 
-            # Cerca utente con quel token
+            # Controlla se l'utente esiste
             response = supabase.table("utenti").select("*").eq("token", token_param[0]).execute()
-            rows = response.data
-
-            if rows and len(rows) > 0:
-                user = rows[0]
+            if response.data:
+                user = response.data[0]
                 user_id = user["id"]
                 nome = user["nome"]
                 cognome = user["cognome"]
                 checked = user["checked"]
 
                 if checked:
-                    st.success(f"✅ Utente già checkato: {nome} {cognome}")
+                    checked_at_str = user["checkedat"].isoformat() if user["checkedat"] else "sconosciuto"
+                    st.success(f"✅ Utente già checkato: {nome} {cognome} alle {checked_at_str}")
                 else:
-                    # Aggiorna checkin sia in utenti che in checkinlog
-                    do_checkin_sql(user_id, checked=True)
+                    # Aggiorna CheckinLog
+                    supabase.table("checkinlog").update({
+                        "checked": True,
+                        "checkedat": datetime.utcnow()
+                    }).eq("userid", user_id).execute()
+
+                    # Aggiorna Utenti
+                    supabase.table("utenti").update({
+                        "checked": True,
+                        "checkedat": datetime.utcnow()
+                    }).eq("id", user_id).execute()
+
                     st.success(f"✅ CHECK-IN EFFETTUATO PER {nome} {cognome}")
             else:
-                st.error("❌ Persona mai registrata.")
-
+                st.error("❌ Persona non registrata.")
         except Exception as e:
             st.error(f"Errore nella decodifica del QR: {e}")
     else:
@@ -234,4 +242,5 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
