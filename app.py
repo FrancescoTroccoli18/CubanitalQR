@@ -14,7 +14,7 @@ from streamlit_autorefresh import st_autorefresh
 # ------------------ CONFIG ------------------
 SUPABASE_URL = "https://kwzoutbgvqadmlcmbauq.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3em91dGJndnFhZG1sY21iYXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyNTA4MjYsImV4cCI6MjA3NTgyNjgyNn0.Kf9IURiE9CMhDmJvjVg-Jy7zXJx3kiHGypmyo4dCscs"
-BASE_URL = "http://cubanitalqr-4ekpeerejlturfczhxdgtz.streamlit.app"  # Streamlit Cloud URL
+BASE_URL = "http://cubanitalqr-cyfdlkc3n8tpfzcipphk9n.streamlit.app"
 PASSPHRASE = "MySecretKey12345"
 KDF_SALT = b"fixed_salt_2025"
 
@@ -47,51 +47,55 @@ def generate_qr_from_text(text: str) -> Image.Image:
 
 # ------------------ DB UTILITY ------------------
 def fetch_all_users():
-    rows = supabase.table("Utenti").select("*").order("Id", desc=True).execute()
-    return rows.data
+    response = supabase.table("utenti").select("*").order("id", desc=True).execute()
+    if response.error:
+        st.error(f"Errore API Supabase: {response.error.message}")
+        return []
+    return response.data
 
 def add_user_sql(record):
     # Inserisci utente
-    result = supabase.table("Utenti").insert({
-        "Tipo": record["tipo"],
-        "Nome": record["nome"],
-        "Cognome": record["cognome"],
-        "Telefono": record["telefono"],
-        "Email": record["email"],
-        "Token": record["token"],
-        "QrBase64": record["qr_base64"],
-        "Checked": False,
+    result = supabase.table("utenti").insert({
+        "tipo": record["tipo"],
+        "nome": record["nome"],
+        "cognome": record["cognome"],
+        "telefono": record["telefono"],
+        "email": record["email"],
+        "token": record["token"],
+        "qrbase64": record["qr_base64"],
+        "checked": False,
     }).execute()
-    user_id = result.data[0]["Id"]
+    user_id = result.data[0]["id"]
 
     # Inserisci CheckinLog
-    supabase.table("CheckinLog").insert({
-        "UserId": user_id,
-        "Checked": False,
-        "CheckedAt": None
+    supabase.table("checkinlog").insert({
+        "userid": user_id,
+        "checked": False,
+        "checkedat": None
     }).execute()
     return user_id
 
 def do_checkin_sql(user_id, checked=True):
-    supabase.table("CheckinLog").update({
-        "Checked": checked,
-        "CheckedAt": datetime.utcnow() if checked else None
-    }).eq("UserId", user_id).execute()
+    supabase.table("checkinlog").update({
+        "checked": checked,
+        "checkedat": datetime.utcnow() if checked else None
+    }).eq("userid", user_id).execute()
 
-    supabase.table("Utenti").update({
-        "Checked": checked,
-        "CheckedAt": datetime.utcnow() if checked else None
-    }).eq("Id", user_id).execute()
+    supabase.table("utenti").update({
+        "checked": checked,
+        "checkedat": datetime.utcnow() if checked else None
+    }).eq("id", user_id).execute()
 
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
 PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR"]
 page = st.sidebar.selectbox("Menu", PAGES)
 
-# --- LISTA PARTECIPANTI (versione filtrabile e refreshabile) ---
+# --- LISTA PARTECIPANTI ---
 if page == "Lista partecipanti":
     st_autorefresh(interval=5000, key="refresh")
     st.header("📋 Lista partecipanti")
+
     rows = fetch_all_users()
     if not rows:
         st.warning("Nessun partecipante registrato.")
@@ -99,19 +103,21 @@ if page == "Lista partecipanti":
         # Filtri
         col1, col2 = st.columns([1,1])
         with col1:
-            tipi_disponibili = sorted(list(set(r["Tipo"] for r in rows)))
+            tipi_disponibili = sorted(list(set(r["tipo"] for r in rows)))
             tipi_disponibili.insert(0, "Tutti")
             filtro_tipo = st.selectbox("Tipo", tipi_disponibili)
         with col2:
             filtro_checked = st.selectbox("Stato", ["Tutti","Checkati","Non checkati"])
         # Applica filtri
         if filtro_tipo != "Tutti":
-            rows = [r for r in rows if r["Tipo"] == filtro_tipo]
+            rows = [r for r in rows if r["tipo"] == filtro_tipo]
         if filtro_checked == "Checkati":
-            rows = [r for r in rows if r["Checked"]]
+            rows = [r for r in rows if r["checked"]]
         elif filtro_checked == "Non checkati":
-            rows = [r for r in rows if not r["Checked"]]
-        rows.sort(key=lambda x: (x["CheckedAt"] is not None, x["CheckedAt"] or datetime.min))
+            rows = [r for r in rows if not r["checked"]]
+
+        # Ordina: prima checkedat NULL, poi crescente
+        rows.sort(key=lambda x: (x["checkedat"] is not None, x["checkedat"] or datetime.min))
 
         header_cols = st.columns([2,2,3,2,2,1,1])
         headers = ["Nome","Cognome","Email","Telefono","Tipo","Checked","Elimina"]
@@ -120,14 +126,14 @@ if page == "Lista partecipanti":
 
         for r in rows:
             cols = st.columns([2,2,3,2,2,1,1])
-            user_id = r["Id"]
-            cols[0].write(r["Nome"])
-            cols[1].write(r["Cognome"])
-            cols[2].write(r["Email"])
-            cols[3].write(r["Telefono"])
-            cols[4].write(r["Tipo"])
+            user_id = r["id"]
+            cols[0].write(r["nome"])
+            cols[1].write(r["cognome"])
+            cols[2].write(r["email"])
+            cols[3].write(r["telefono"])
+            cols[4].write(r["tipo"])
             chk_key = f"chk_{user_id}"
-            checked_from_db = r["Checked"]
+            checked_from_db = r["checked"]
             if chk_key not in st.session_state or st.session_state[chk_key] != checked_from_db:
                 st.session_state[chk_key] = checked_from_db
             new_val = cols[5].checkbox("", key=chk_key)
@@ -136,7 +142,7 @@ if page == "Lista partecipanti":
                 st.session_state[chk_key] = new_val
                 st.rerun()
             if cols[6].button("🗑️", key=f"del_{user_id}"):
-                supabase.table("Utenti").delete().eq("Id", user_id).execute()
+                supabase.table("utenti").delete().eq("id", user_id).execute()
                 st.rerun()
 
 # --- GENERA QR ---
@@ -169,7 +175,9 @@ elif page == "Genera QR":
             qr_base64 = base64.b64encode(buf.getvalue()).decode()
 
             # Carica QR su Supabase Storage
-            supabase.storage.from_("partecipanti").upload(f"qr_{nome}_{cognome}.png", buf.getvalue(), {"content-type":"image/png"})
+            supabase.storage.from_("partecipanti").upload(
+                f"qr_{nome}_{cognome}.png", buf.getvalue(), {"content-type":"image/png"}
+            )
 
             record = {
                 "tipo": tipo,
@@ -183,4 +191,3 @@ elif page == "Genera QR":
             add_user_sql(record)
             st.image(img, width=200)
             st.success(f"✅ QR creato per {nome} {cognome}")
-
