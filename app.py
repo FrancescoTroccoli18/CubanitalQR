@@ -14,7 +14,7 @@ from streamlit_autorefresh import st_autorefresh
 # ------------------ CONFIG ------------------
 SUPABASE_URL = "https://kwzoutbgvqadmlcmbauq.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3em91dGJndnFhZG1sY21iYXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyNTA4MjYsImV4cCI6MjA3NTgyNjgyNn0.Kf9IURiE9CMhDmJvjVg-Jy7zXJx3kiHGypmyo4dCscs"
-BASE_URL = "http://cubanitalqr-ezngn6prgdoafsrad9fvj6.streamlit.app"
+BASE_URL = "http://cubanitalqr-ead49sf9t8xndcwlazlhuv.streamlit.app"
 PASSPHRASE = "MySecretKey12345"
 KDF_SALT = b"fixed_salt_2025"
 
@@ -146,6 +146,61 @@ if page == "Lista partecipanti":
                 supabase.table("utenti").delete().eq("id", user_id).execute()
                 st.rerun()
 
+# --- VISUALIZZA QR --- aggiungiamo un nuovo menu
+PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR", "Visualizza QR"]
+page = st.sidebar.selectbox("Menu", PAGES)
+
+# --- LISTA PARTECIPANTI (versione filtrabile e refreshabile) ---
+if page == "Lista partecipanti":
+    st_autorefresh(interval=5000, key="refresh")
+    st.header("📋 Lista partecipanti")
+    rows = fetch_all_users()
+    if not rows:
+        st.warning("Nessun partecipante registrato.")
+    else:
+        # Filtri
+        col1, col2 = st.columns([1,1])
+        with col1:
+            tipi_disponibili = sorted(list(set(r["Tipo"] for r in rows)))
+            tipi_disponibili.insert(0, "Tutti")
+            filtro_tipo = st.selectbox("Tipo", tipi_disponibili)
+        with col2:
+            filtro_checked = st.selectbox("Stato", ["Tutti","Checkati","Non checkati"])
+        # Applica filtri
+        if filtro_tipo != "Tutti":
+            rows = [r for r in rows if r["Tipo"] == filtro_tipo]
+        if filtro_checked == "Checkati":
+            rows = [r for r in rows if r["Checked"]]
+        elif filtro_checked == "Non checkati":
+            rows = [r for r in rows if not r["Checked"]]
+        rows.sort(key=lambda x: (x["CheckedAt"] is not None, x["CheckedAt"] or datetime.min))
+
+        header_cols = st.columns([2,2,3,2,2,1,1])
+        headers = ["Nome","Cognome","Email","Telefono","Tipo","Checked","Elimina"]
+        for col, title in zip(header_cols, headers):
+            col.markdown(f"**{title}**")
+
+        for r in rows:
+            cols = st.columns([2,2,3,2,2,1,1])
+            user_id = r["Id"]
+            cols[0].write(r["Nome"])
+            cols[1].write(r["Cognome"])
+            cols[2].write(r["Email"])
+            cols[3].write(r["Telefono"])
+            cols[4].write(r["Tipo"])
+            chk_key = f"chk_{user_id}"
+            checked_from_db = r["Checked"]
+            if chk_key not in st.session_state or st.session_state[chk_key] != checked_from_db:
+                st.session_state[chk_key] = checked_from_db
+            new_val = cols[5].checkbox("", key=chk_key)
+            if new_val != st.session_state[chk_key]:
+                do_checkin_sql(user_id, new_val)
+                st.session_state[chk_key] = new_val
+                st.rerun()
+            if cols[6].button("🗑️", key=f"del_{user_id}"):
+                supabase.table("Utenti").delete().eq("Id", user_id).execute()
+                st.rerun()
+
 # --- GENERA QR ---
 elif page == "Genera QR":
     st.header("🎫 Genera QR per partecipante")
@@ -175,25 +230,6 @@ elif page == "Genera QR":
             img.save(buf, format="PNG")
             qr_base64 = base64.b64encode(buf.getvalue()).decode()
 
-            # Carica QR su Supabase Storage
-            file_path = f"qr_{nome}_{cognome}.png"
-            buf_bytes = buf.getvalue()  # converti in bytes
-            
-            # elimina file se già presente
-            existing_files = supabase.storage.from_("partecipanti").list()
-            if any(f["name"] == file_path for f in existing_files):
-                supabase.storage.from_("partecipanti").remove([file_path])
-            
-            # upload nuovo file
-            try:
-                supabase.storage.from_("partecipanti").upload(
-                    file_path,
-                    buf_bytes,
-                    {"content-type": "image/png"}
-                )
-            except Exception as e:
-                st.error(f"Errore upload Supabase Storage: {e}")
-
             record = {
                 "tipo": tipo,
                 "nome": nome,
@@ -206,6 +242,22 @@ elif page == "Genera QR":
             add_user_sql(record)
             st.image(img, width=200)
             st.success(f"✅ QR creato per {nome} {cognome}")
+
+# --- VISUALIZZA QR ---
+elif page == "Visualizza QR":
+    st.header("🔍 Visualizza QR partecipante")
+    rows = fetch_all_users()
+    if not rows:
+        st.warning("Nessun partecipante registrato.")
+    else:
+        options = [f"{r['Nome']} {r['Cognome']} ({r['Email']})" for r in rows]
+        selected = st.selectbox("Seleziona partecipante", options)
+        if selected:
+            user = rows[options.index(selected)]
+            qr_bytes = base64.b64decode(user["QrBase64"])
+            img = Image.open(BytesIO(qr_bytes))
+            st.image(img, caption=f"QR di {user['Nome']} {user['Cognome']}", width=300)
+
 
 
 
