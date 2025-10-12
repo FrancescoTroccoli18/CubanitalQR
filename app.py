@@ -96,19 +96,19 @@ if not cookies.ready():
 
 # Logout funzione
 def logout():
-    cookies["logged_in"] = False
+    cookies["logged_in"] = "False"
     cookies.save()
     st.experimental_rerun()
 
 # Controllo login
-logged_in = cookies.get("logged_in", False)
+logged_in = cookies.get("logged_in", "False")
 if not logged_in:
     st.header("🔐 Login Admin")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Login"):
         if username == "cubanital" and password == "Kabiosile!":
-            cookies["logged_in"] = True
+            cookies["logged_in"] = "True"   # invece di True
             cookies.save()
             st.success("✅ Login effettuato")
             st.experimental_rerun()
@@ -280,6 +280,7 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
