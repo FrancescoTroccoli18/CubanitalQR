@@ -14,7 +14,7 @@ from streamlit_autorefresh import st_autorefresh
 # ------------------ CONFIG ------------------
 SUPABASE_URL = "https://kwzoutbgvqadmlcmbauq.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3em91dGJndnFhZG1sY21iYXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyNTA4MjYsImV4cCI6MjA3NTgyNjgyNn0.Kf9IURiE9CMhDmJvjVg-Jy7zXJx3kiHGypmyo4dCscs"
-BASE_URL = "http://cubanitalqr-cyfdlkc3n8tpfzcipphk9n.streamlit.app"
+BASE_URL = "http://cubanitalqr-gjjghv5e3gh5a5ym2ste8b.streamlit.app"
 PASSPHRASE = "MySecretKey12345"
 KDF_SALT = b"fixed_salt_2025"
 
@@ -47,11 +47,12 @@ def generate_qr_from_text(text: str) -> Image.Image:
 
 # ------------------ DB UTILITY ------------------
 def fetch_all_users():
-    response = supabase.table("utenti").select("*").order("id", desc=True).execute()
-    if response.error:
-        st.error(f"Errore API Supabase: {response.error.message}")
+    try:
+        response = supabase.table("utenti").select("*").order("id", desc=True).execute()
+        return response.data  # contiene sempre la lista dei record
+    except Exception as e:
+        st.error(f"Errore API Supabase: {e}")
         return []
-    return response.data
 
 def add_user_sql(record):
     # Inserisci utente
@@ -191,3 +192,4 @@ elif page == "Genera QR":
             add_user_sql(record)
             st.image(img, width=200)
             st.success(f"✅ QR creato per {nome} {cognome}")
+
