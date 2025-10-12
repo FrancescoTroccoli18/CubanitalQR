@@ -49,13 +49,12 @@ def generate_qr_from_text(text: str) -> Image.Image:
 def fetch_all_users():
     try:
         response = supabase.table("utenti").select("*").order("id", desc=True).execute()
-        return response.data  # contiene sempre la lista dei record
+        return response.data
     except Exception as e:
         st.error(f"Errore API Supabase: {e}")
         return []
 
 def add_user_sql(record):
-    # Inserisci utente
     result = supabase.table("utenti").insert({
         "tipo": record["tipo"],
         "nome": record["nome"],
@@ -68,7 +67,6 @@ def add_user_sql(record):
     }).execute()
     user_id = result.data[0]["id"]
 
-    # Inserisci CheckinLog
     supabase.table("checkinlog").insert({
         "userid": user_id,
         "checked": False,
@@ -89,35 +87,30 @@ def do_checkin_sql(user_id, checked=True):
 
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
-PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR"]
+PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR", "Visualizza QR"]
 page = st.sidebar.selectbox("Menu", PAGES)
 
 # --- LISTA PARTECIPANTI ---
 if page == "Lista partecipanti":
     st_autorefresh(interval=5000, key="refresh")
     st.header("📋 Lista partecipanti")
-
     rows = fetch_all_users()
     if not rows:
         st.warning("Nessun partecipante registrato.")
     else:
-        # Filtri
         col1, col2 = st.columns([1,1])
         with col1:
-            tipi_disponibili = sorted(list(set(r["tipo"] for r in rows)))
+            tipi_disponibili = sorted(list(set(r["tipo"] for r in rows if r.get("tipo"))))
             tipi_disponibili.insert(0, "Tutti")
             filtro_tipo = st.selectbox("Tipo", tipi_disponibili)
         with col2:
             filtro_checked = st.selectbox("Stato", ["Tutti","Checkati","Non checkati"])
-        # Applica filtri
         if filtro_tipo != "Tutti":
             rows = [r for r in rows if r["tipo"] == filtro_tipo]
         if filtro_checked == "Checkati":
             rows = [r for r in rows if r["checked"]]
         elif filtro_checked == "Non checkati":
             rows = [r for r in rows if not r["checked"]]
-
-        # Ordina: prima checkedat NULL, poi crescente
         rows.sort(key=lambda x: (x["checkedat"] is not None, x["checkedat"] or datetime.min))
 
         header_cols = st.columns([2,2,3,2,2,1,1])
@@ -144,61 +137,6 @@ if page == "Lista partecipanti":
                 st.rerun()
             if cols[6].button("🗑️", key=f"del_{user_id}"):
                 supabase.table("utenti").delete().eq("id", user_id).execute()
-                st.rerun()
-
-# --- VISUALIZZA QR --- aggiungiamo un nuovo menu
-PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR", "Visualizza QR"]
-page = st.sidebar.selectbox("Menu", PAGES)
-
-# --- LISTA PARTECIPANTI (versione filtrabile e refreshabile) ---
-if page == "Lista partecipanti":
-    st_autorefresh(interval=5000, key="refresh")
-    st.header("📋 Lista partecipanti")
-    rows = fetch_all_users()
-    if not rows:
-        st.warning("Nessun partecipante registrato.")
-    else:
-        # Filtri
-        col1, col2 = st.columns([1,1])
-        with col1:
-            tipi_disponibili = sorted(list(set(r["Tipo"] for r in rows)))
-            tipi_disponibili.insert(0, "Tutti")
-            filtro_tipo = st.selectbox("Tipo", tipi_disponibili)
-        with col2:
-            filtro_checked = st.selectbox("Stato", ["Tutti","Checkati","Non checkati"])
-        # Applica filtri
-        if filtro_tipo != "Tutti":
-            rows = [r for r in rows if r["Tipo"] == filtro_tipo]
-        if filtro_checked == "Checkati":
-            rows = [r for r in rows if r["Checked"]]
-        elif filtro_checked == "Non checkati":
-            rows = [r for r in rows if not r["Checked"]]
-        rows.sort(key=lambda x: (x["CheckedAt"] is not None, x["CheckedAt"] or datetime.min))
-
-        header_cols = st.columns([2,2,3,2,2,1,1])
-        headers = ["Nome","Cognome","Email","Telefono","Tipo","Checked","Elimina"]
-        for col, title in zip(header_cols, headers):
-            col.markdown(f"**{title}**")
-
-        for r in rows:
-            cols = st.columns([2,2,3,2,2,1,1])
-            user_id = r["Id"]
-            cols[0].write(r["Nome"])
-            cols[1].write(r["Cognome"])
-            cols[2].write(r["Email"])
-            cols[3].write(r["Telefono"])
-            cols[4].write(r["Tipo"])
-            chk_key = f"chk_{user_id}"
-            checked_from_db = r["Checked"]
-            if chk_key not in st.session_state or st.session_state[chk_key] != checked_from_db:
-                st.session_state[chk_key] = checked_from_db
-            new_val = cols[5].checkbox("", key=chk_key)
-            if new_val != st.session_state[chk_key]:
-                do_checkin_sql(user_id, new_val)
-                st.session_state[chk_key] = new_val
-                st.rerun()
-            if cols[6].button("🗑️", key=f"del_{user_id}"):
-                supabase.table("Utenti").delete().eq("Id", user_id).execute()
                 st.rerun()
 
 # --- GENERA QR ---
@@ -246,30 +184,17 @@ elif page == "Genera QR":
 # --- VISUALIZZA QR ---
 elif page == "Visualizza QR":
     st.header("🔍 Visualizza QR partecipante")
-
-    rows = fetch_all_users()  # tutti gli utenti
+    rows = fetch_all_users()
     if not rows:
         st.warning("Nessun partecipante registrato.")
     else:
-        # Opzioni per selectbox
         options = [f"{r['nome']} {r['cognome']} ({r['email']})" for r in rows]
         selected = st.selectbox("Seleziona partecipante", options)
-
         if selected:
-            # Trova record corrispondente
             user = rows[options.index(selected)]
-            
-            # Decodifica base64 e crea immagine
             try:
                 qr_bytes = base64.b64decode(user["qrbase64"])
                 img = Image.open(BytesIO(qr_bytes))
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
-
-
-
-
-
-
-
