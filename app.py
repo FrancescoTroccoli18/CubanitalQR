@@ -246,17 +246,27 @@ elif page == "Genera QR":
 # --- VISUALIZZA QR ---
 elif page == "Visualizza QR":
     st.header("🔍 Visualizza QR partecipante")
-    rows = fetch_all_users()
+
+    rows = fetch_all_users()  # tutti gli utenti
     if not rows:
         st.warning("Nessun partecipante registrato.")
     else:
-        options = [f"{r['Nome']} {r['Cognome']} ({r['Email']})" for r in rows]
+        # Opzioni per selectbox
+        options = [f"{r['nome']} {r['cognome']} ({r['email']})" for r in rows]
         selected = st.selectbox("Seleziona partecipante", options)
+
         if selected:
+            # Trova record corrispondente
             user = rows[options.index(selected)]
-            qr_bytes = base64.b64decode(user["QrBase64"])
-            img = Image.open(BytesIO(qr_bytes))
-            st.image(img, caption=f"QR di {user['Nome']} {user['Cognome']}", width=300)
+            
+            # Decodifica base64 e crea immagine
+            try:
+                qr_bytes = base64.b64decode(user["qr_base64"])
+                img = Image.open(BytesIO(qr_bytes))
+                st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
+            except Exception as e:
+                st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
