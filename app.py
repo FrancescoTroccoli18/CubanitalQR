@@ -10,6 +10,7 @@ import qrcode
 from io import BytesIO
 from PIL import Image
 from streamlit_autorefresh import st_autorefresh
+from streamlit_cookies_manager import EncryptedCookieManager
 
 # ------------------ CONFIG ------------------
 SUPABASE_URL = "https://kwzoutbgvqadmlcmbauq.supabase.co"
@@ -85,25 +86,39 @@ def do_checkin_sql(user_id, checked=True):
         "checkedat": datetime.utcnow() if checked else None
     }).eq("id", user_id).execute()
 
-# ------------------ STREAMLIT ------------------
-# ------------------ LOGIN HARD-CODED ------------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+# ------------------ COOKIE MANAGER LOGIN ------------------
+cookies = EncryptedCookieManager(
+    prefix="cubanital_",
+    password="YourCookieEncryptionPassword123!"  # cambia con una chiave sicura
+)
+if not cookies.ready():
+    st.stop()  # aspetta che i cookie siano pronti
 
-if not st.session_state.logged_in:
+# Logout funzione
+def logout():
+    cookies["logged_in"] = False
+    cookies.save()
+    st.experimental_rerun()
+
+# Controllo login
+logged_in = cookies.get("logged_in", False)
+if not logged_in:
     st.header("🔐 Login Admin")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Login"):
         if username == "cubanital" and password == "Kabiosile!":
-            st.session_state.logged_in = True
+            cookies["logged_in"] = True
+            cookies.save()
             st.success("✅ Login effettuato")
-            st.rerun()
+            st.experimental_rerun()
         else:
             st.error("❌ Username o password errati")
-    st.stop()  # blocca tutto il resto dell'app se non loggato
+    st.stop()  # blocca il resto dell'app finché non loggato
+else:
+    st.sidebar.button("Logout", on_click=logout)
 
-# --- Streamlit page config e menu ---
+# ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
 PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR", "Visualizza QR"]
 page = st.sidebar.selectbox("Menu", PAGES)
@@ -265,6 +280,7 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
