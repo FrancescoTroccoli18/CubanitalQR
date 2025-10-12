@@ -99,11 +99,13 @@ if page == "Check-in automatico":
         try:
             # Decodifica token dal QR
             token_bytes = base64.urlsafe_b64decode(token_param[0])
-            payload = json.loads(decrypt_payload(token_bytes).decode("utf-8"))
+            decrypted = decrypt_payload(token_bytes).decode("utf-8")
+            payload = json.loads(decrypted)
 
-            # Controlla se l'utente esiste
+            # Cerca utente con lo stesso token
             response = supabase.table("utenti").select("*").eq("token", token_param[0]).execute()
-            if response.data:
+
+            if response.data and len(response.data) > 0:
                 user = response.data[0]
                 user_id = user["id"]
                 nome = user["nome"]
@@ -111,19 +113,27 @@ if page == "Check-in automatico":
                 checked = user["checked"]
 
                 if checked:
-                    checked_at_str = user["checkedat"].isoformat() if user["checkedat"] else "sconosciuto"
-                    st.success(f"✅ Utente già checkato: {nome} {cognome} alle {checked_at_str}")
+                    checked_at_val = user.get("checkedat")
+                    if isinstance(checked_at_val, str):
+                        checked_at_str = checked_at_val
+                    elif isinstance(checked_at_val, datetime):
+                        checked_at_str = checked_at_val.isoformat()
+                    else:
+                        checked_at_str = "sconosciuto"
+
+                    st.success(f"✅ Utente già checkato: {nome} {cognome} ({checked_at_str})")
                 else:
                     # Aggiorna CheckinLog
+                    now_str = datetime.utcnow().isoformat() + "Z"
                     supabase.table("checkinlog").update({
                         "checked": True,
-                        "checkedat": datetime.utcnow()
+                        "checkedat": now_str
                     }).eq("userid", user_id).execute()
 
                     # Aggiorna Utenti
                     supabase.table("utenti").update({
                         "checked": True,
-                        "checkedat": datetime.utcnow()
+                        "checkedat": now_str
                     }).eq("id", user_id).execute()
 
                     st.success(f"✅ CHECK-IN EFFETTUATO PER {nome} {cognome}")
@@ -242,5 +252,6 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
