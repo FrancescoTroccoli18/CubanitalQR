@@ -90,6 +90,42 @@ st.set_page_config(page_title="QR Check-in", layout="wide")
 PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR", "Visualizza QR"]
 page = st.sidebar.selectbox("Menu", PAGES)
 
+# --- CHECK-IN AUTOMATICO ---
+if page == "Check-in automatico":
+    st.header("📲 Check-in automatico")
+    token_param = st.experimental_get_query_params().get("token")
+
+    if token_param:
+        try:
+            # Decodifica token dal QR
+            token_bytes = base64.urlsafe_b64decode(token_param[0])
+            payload = json.loads(decrypt_payload(token_bytes).decode("utf-8"))
+
+            # Cerca utente con quel token
+            response = supabase.table("utenti").select("*").eq("token", token_param[0]).execute()
+            rows = response.data
+
+            if rows and len(rows) > 0:
+                user = rows[0]
+                user_id = user["id"]
+                nome = user["nome"]
+                cognome = user["cognome"]
+                checked = user["checked"]
+
+                if checked:
+                    st.success(f"✅ Utente già checkato: {nome} {cognome}")
+                else:
+                    # Aggiorna checkin sia in utenti che in checkinlog
+                    do_checkin_sql(user_id, checked=True)
+                    st.success(f"✅ CHECK-IN EFFETTUATO PER {nome} {cognome}")
+            else:
+                st.error("❌ Persona mai registrata.")
+
+        except Exception as e:
+            st.error(f"Errore nella decodifica del QR: {e}")
+    else:
+        st.info("Inquadra il QR code per check-in automatico.")
+
 # --- LISTA PARTECIPANTI ---
 if page == "Lista partecipanti":
     st_autorefresh(interval=5000, key="refresh")
@@ -198,3 +234,4 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
