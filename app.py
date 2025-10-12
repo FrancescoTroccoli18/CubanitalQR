@@ -14,7 +14,7 @@ from streamlit_autorefresh import st_autorefresh
 # ------------------ CONFIG ------------------
 SUPABASE_URL = "https://kwzoutbgvqadmlcmbauq.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3em91dGJndnFhZG1sY21iYXVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAyNTA4MjYsImV4cCI6MjA3NTgyNjgyNn0.Kf9IURiE9CMhDmJvjVg-Jy7zXJx3kiHGypmyo4dCscs"
-BASE_URL = "http://cubanitalqr-gjjghv5e3gh5a5ym2ste8b.streamlit.app"
+BASE_URL = "http://cubanitalqr-vxg5gdntcvxyn9agpcfpm2.streamlit.app"
 PASSPHRASE = "MySecretKey12345"
 KDF_SALT = b"fixed_salt_2025"
 
@@ -176,9 +176,16 @@ elif page == "Genera QR":
             qr_base64 = base64.b64encode(buf.getvalue()).decode()
 
             # Carica QR su Supabase Storage
-            supabase.storage.from_("partecipanti").upload(
-                f"qr_{nome}_{cognome}.png", buf.getvalue(), {"content-type":"image/png"}
-            )
+            buf.seek(0)
+            try:
+                supabase.storage.from_("partecipanti").upload(
+                    f"qr_{nome}_{cognome}.png",
+                    buf,
+                    {"content-type": "image/png"},
+                    upsert=True  # evita errori se il file esiste già
+                )
+            except Exception as e:
+                st.error(f"Errore upload Supabase Storage: {e}")
 
             record = {
                 "tipo": tipo,
@@ -192,4 +199,5 @@ elif page == "Genera QR":
             add_user_sql(record)
             st.image(img, width=200)
             st.success(f"✅ QR creato per {nome} {cognome}")
+
 
