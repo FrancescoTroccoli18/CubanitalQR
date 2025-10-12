@@ -1,2 +1,9 @@
-showErrorDetails = false
- 
+[server]
+headless = true
+enableCORS = false
+
+[theme]
+base="light"
+
+[global]
+showErrorDetails = false   # Disabilita i dettagli degli errori (stack trace)
