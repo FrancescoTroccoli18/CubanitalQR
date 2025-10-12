@@ -90,19 +90,36 @@ st.set_page_config(page_title="QR Check-in", layout="wide")
 PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR", "Visualizza QR"]
 page = st.sidebar.selectbox("Menu", PAGES)
 
-# --- CHECK-IN AUTOMATICO ---
+# --- CHECK-IN AUTOMATICO CON LOGIN ---
 if page == "Check-in automatico":
     st.header("📲 Check-in automatico")
+
+    # Login hardcoded
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+
+    if not st.session_state.logged_in:
+        st.subheader("🔐 Login Admin")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if username == "cubanital" and password == "Kabiosile!":
+                st.session_state.logged_in = True
+                st.success("✅ Login effettuato")
+                st.experimental_rerun()
+            else:
+                st.error("❌ Username o password errati")
+        st.stop()  # ferma qui se non loggato
+
+    # Da qui in poi sei loggato
     token_param = st.experimental_get_query_params().get("token")
 
     if token_param:
         try:
-            # Decodifica token dal QR
             token_bytes = base64.urlsafe_b64decode(token_param[0])
             decrypted = decrypt_payload(token_bytes).decode("utf-8")
             payload = json.loads(decrypted)
 
-            # Cerca utente con lo stesso token
             response = supabase.table("utenti").select("*").eq("token", token_param[0]).execute()
 
             if response.data and len(response.data) > 0:
@@ -120,22 +137,17 @@ if page == "Check-in automatico":
                         checked_at_str = checked_at_val.isoformat()
                     else:
                         checked_at_str = "sconosciuto"
-
                     st.success(f"✅ Utente già checkato: {nome} {cognome} ({checked_at_str})")
                 else:
-                    # Aggiorna CheckinLog
                     now_str = datetime.utcnow().isoformat() + "Z"
                     supabase.table("checkinlog").update({
                         "checked": True,
                         "checkedat": now_str
                     }).eq("userid", user_id).execute()
-
-                    # Aggiorna Utenti
                     supabase.table("utenti").update({
                         "checked": True,
                         "checkedat": now_str
                     }).eq("id", user_id).execute()
-
                     st.success(f"✅ CHECK-IN EFFETTUATO PER {nome} {cognome}")
             else:
                 st.error("❌ Persona non registrata.")
@@ -143,6 +155,7 @@ if page == "Check-in automatico":
             st.error(f"Errore nella decodifica del QR: {e}")
     else:
         st.info("Inquadra il QR code per check-in automatico.")
+
 
 # --- LISTA PARTECIPANTI ---
 if page == "Lista partecipanti":
@@ -252,6 +265,7 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
