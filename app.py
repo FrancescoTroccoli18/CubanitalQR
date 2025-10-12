@@ -102,21 +102,24 @@ def logout():
 
 # Controllo login
 logged_in = cookies.get("logged_in", "False")
-if not logged_in:
+if logged_in != "True":
     st.header("🔐 Login Admin")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
     if st.button("Login"):
         if username == "cubanital" and password == "Kabiosile!":
-            cookies["logged_in"] = "True"   # invece di True
+            cookies["logged_in"] = "True"
             cookies.save()
             st.success("✅ Login effettuato")
             st.rerun()
         else:
             st.error("❌ Username o password errati")
-    st.stop()  # blocca il resto dell'app finché non loggato
+    st.stop()
 else:
-    st.sidebar.button("Logout", on_click=logout)
+    if st.sidebar.button("Logout"):
+        cookies["logged_in"] = "False"
+        cookies.save()
+        st.rerun()
 
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
@@ -280,6 +283,7 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
