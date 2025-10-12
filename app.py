@@ -98,7 +98,7 @@ if not st.session_state.logged_in:
         if username == "cubanital" and password == "Kabiosile!":
             st.session_state.logged_in = True
             st.success("✅ Login effettuato")
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("❌ Username o password errati")
     st.stop()  # blocca tutto il resto dell'app se non loggato
@@ -265,6 +265,7 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
