@@ -10,4 +10,5 @@ streamlit-autorefresh
 filelock
 pyodbc
 psycopg2-binary
+streamlit-cookies-manager
 supabase
