@@ -291,11 +291,27 @@ elif page == "Visualizza QR":
         if selected:
             user = rows[options.index(selected)]
             try:
+                # Decodifica QR
                 qr_bytes = base64.b64decode(user["qrbase64"])
                 img = Image.open(BytesIO(qr_bytes))
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
+
+                # 🔽 Pulsante per scaricare come PNG
+                buf = BytesIO()
+                img.save(buf, format="PNG")
+                buf.seek(0)
+
+                file_name = f"QR_{user['nome']}_{user['cognome']}.png"
+                st.download_button(
+                    label="📥 Scarica QR come PNG",
+                    data=buf,
+                    file_name=file_name,
+                    mime="image/png",
+                )
+
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
