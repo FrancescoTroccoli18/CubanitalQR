@@ -127,9 +127,9 @@ st.set_page_config(page_title="QR Check-in", layout="wide")
 # Logo nella sidebar
 with st.sidebar:
     try:
-        st.image("cubanital_logo.jpg", use_container_width=True)
+        st.image("cubanital_logo.png", use_container_width=True)
     except Exception:
-        st.warning("⚠️ Immagine 'cubanital_logo.jpg' non trovata nella cartella dell'app.")
+        st.warning("⚠️ Immagine 'cubanital_logo.png' non trovata nella cartella dell'app.")
     
     # Spazio tra logo e pulsante
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -332,6 +332,7 @@ with tab4:
 
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
