@@ -116,7 +116,7 @@ if logged_in != "True":
             st.error("❌ Username o password errati")
     st.stop()
 else:
-    if st.sidebar.button("Logout"):
+    if st.sidebar.button("Logout", key="logout_btn"):
         cookies["logged_in"] = "False"
         cookies.save()
         st.rerun()
@@ -126,7 +126,7 @@ st.set_page_config(page_title="QR Check-in", layout="wide")
 
 # Mostra il logo in alto (immagine nella stessa cartella)
 try:
-    st.image("cubanital_logo.jpg", use_container_width=True)
+    st.image("cubanital_logo.jpg", width=1500)
 except Exception:
     st.warning("⚠️ Immagine 'logo.png' non trovata nella cartella dell'app.")
 
@@ -330,6 +330,7 @@ with tab4:
 
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
