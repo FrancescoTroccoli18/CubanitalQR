@@ -123,11 +123,30 @@ else:
 
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
-PAGES = ["Check-in automatico", "Lista partecipanti", "Genera QR", "Visualizza QR"]
-page = st.sidebar.selectbox("Menu", PAGES)
+
+# Mostra il logo in alto (immagine nella stessa cartella)
+try:
+    st.image("cubanital_logo.png", use_container_width=True)
+except Exception:
+    st.warning("⚠️ Immagine 'logo.png' non trovata nella cartella dell'app.")
+
+# Pulsante Logout nella sidebar
+st.sidebar.title("Admin")
+if st.sidebar.button("Logout"):
+    cookies["logged_in"] = "False"
+    cookies.save()
+    st.rerun()
+
+# Tabs di navigazione
+tab1, tab2, tab3, tab4 = st.tabs([
+    "📲 Check-in automatico",
+    "📋 Lista partecipanti",
+    "🎫 Genera QR",
+    "🔍 Visualizza QR"
+])
 
 # --- CHECK-IN AUTOMATICO CON LOGIN ---
-if page == "Check-in automatico":
+with tab1:
     st.header("📲 Check-in automatico")
     
     token_param = st.experimental_get_query_params().get("token")
@@ -176,7 +195,7 @@ if page == "Check-in automatico":
 
 
 # --- LISTA PARTECIPANTI ---
-if page == "Lista partecipanti":
+with tab2:
     st_autorefresh(interval=5000, key="refresh")
     st.header("📋 Lista partecipanti")
     rows = fetch_all_users()
@@ -232,7 +251,7 @@ if page == "Lista partecipanti":
                     st.error(f"Errore nella cancellazione dell'utente: {e}")
 
 # --- GENERA QR ---
-elif page == "Genera QR":
+with tab3:
     st.header("🎫 Genera QR per partecipante") 
     nome = st.text_input("Nome") 
     cognome = st.text_input("Cognome") 
@@ -280,7 +299,7 @@ elif page == "Genera QR":
                 st.success(f"✅ QR creato per {nome} {cognome}")
 
 # --- VISUALIZZA QR ---
-elif page == "Visualizza QR":
+with tab4:
     st.header("🔍 Visualizza QR partecipante")
     rows = fetch_all_users()
     if not rows:
@@ -311,6 +330,7 @@ elif page == "Visualizza QR":
 
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
