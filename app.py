@@ -126,7 +126,7 @@ st.set_page_config(page_title="QR Check-in", layout="wide")
 
 # Mostra il logo in alto (immagine nella stessa cartella)
 try:
-    st.image("cubanital_logo.jpg", width=1500)
+    st.image("cubanital_logo.jpg", width=500)
 except Exception:
     st.warning("⚠️ Immagine 'logo.png' non trovata nella cartella dell'app.")
 
@@ -330,6 +330,7 @@ with tab4:
 
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
