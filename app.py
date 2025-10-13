@@ -124,18 +124,18 @@ else:
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
 
-# Mostra il logo in alto (immagine nella stessa cartella)
-try:
-    st.image("cubanital_logo.jpg", width=500)
-except Exception:
-    st.warning("⚠️ Immagine 'logo.png' non trovata nella cartella dell'app.")
+# Logo nella sidebar
+with st.sidebar:
+    try:
+        st.image("cubanital_logo.jpg", use_container_width=True)
+    except Exception:
+        st.warning("⚠️ Immagine 'cubanital_logo.jpg' non trovata nella cartella dell'app.")
 
-# Pulsante Logout nella sidebar
-st.sidebar.title("Admin")
-if st.sidebar.button("Logout"):
-    cookies["logged_in"] = "False"
-    cookies.save()
-    st.rerun()
+    st.title("Admin")
+    if st.button("Logout", key="logout_sidebar"):
+        cookies["logged_in"] = "False"
+        cookies.save()
+        st.rerun()
 
 # Tabs di navigazione
 tab1, tab2, tab3, tab4 = st.tabs([
@@ -330,6 +330,7 @@ with tab4:
 
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
