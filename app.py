@@ -233,51 +233,51 @@ if page == "Lista partecipanti":
 
 # --- GENERA QR ---
 elif page == "Genera QR":
-st.header("🎫 Genera QR per partecipante") 
-nome = st.text_input("Nome") 
-cognome = st.text_input("Cognome") 
-telefono = st.text_input("Telefono") 
-email = st.text_input("Email") 
-tipo = st.selectbox("Tipo di pass", ["FullPack","FullPass"])
-if st.button("Genera QR"):
-    if not (nome and cognome and email):
-        st.error("Inserisci Nome, Cognome ed Email.")
-    else:
-        # 🔍 Controllo unicità email
-        existing = supabase.table("utenti").select("id").eq("email", email).execute()
-        if existing.data and len(existing.data) > 0:
-            st.error(f"⚠️ Esiste già un utente registrato con l'email {email}.")
+    st.header("🎫 Genera QR per partecipante") 
+    nome = st.text_input("Nome") 
+    cognome = st.text_input("Cognome") 
+    telefono = st.text_input("Telefono") 
+    email = st.text_input("Email") 
+    tipo = st.selectbox("Tipo di pass", ["FullPack","FullPass"])
+    if st.button("Genera QR"):
+        if not (nome and cognome and email):
+            st.error("Inserisci Nome, Cognome ed Email.")
         else:
-            # Procedi normalmente
-            payload = {
-                "tipo": tipo,
-                "nome": nome,
-                "cognome": cognome,
-                "telefono": telefono,
-                "email": email,
-                "created_at": datetime.utcnow().isoformat()+"Z",
-            }
-            token_bytes = encrypt_payload(json.dumps(payload).encode())
-            token_str = base64.urlsafe_b64encode(token_bytes).decode()
-            url = f"{BASE_URL}?token={token_str}"
-            img = generate_qr_from_text(url)
-
-            buf = BytesIO()
-            img.save(buf, format="PNG")
-            qr_base64 = base64.b64encode(buf.getvalue()).decode()
-
-            record = {
-                "tipo": tipo,
-                "nome": nome,
-                "cognome": cognome,
-                "telefono": telefono,
-                "email": email,
-                "token": token_str,
-                "qr_base64": qr_base64,
-            }
-            add_user_sql(record)
-            st.image(img, width=200)
-            st.success(f"✅ QR creato per {nome} {cognome}")
+            # 🔍 Controllo unicità email
+            existing = supabase.table("utenti").select("id").eq("email", email).execute()
+            if existing.data and len(existing.data) > 0:
+                st.error(f"⚠️ Esiste già un utente registrato con l'email {email}.")
+            else:
+                # Procedi normalmente
+                payload = {
+                    "tipo": tipo,
+                    "nome": nome,
+                    "cognome": cognome,
+                    "telefono": telefono,
+                    "email": email,
+                    "created_at": datetime.utcnow().isoformat()+"Z",
+                }
+                token_bytes = encrypt_payload(json.dumps(payload).encode())
+                token_str = base64.urlsafe_b64encode(token_bytes).decode()
+                url = f"{BASE_URL}?token={token_str}"
+                img = generate_qr_from_text(url)
+    
+                buf = BytesIO()
+                img.save(buf, format="PNG")
+                qr_base64 = base64.b64encode(buf.getvalue()).decode()
+    
+                record = {
+                    "tipo": tipo,
+                    "nome": nome,
+                    "cognome": cognome,
+                    "telefono": telefono,
+                    "email": email,
+                    "token": token_str,
+                    "qr_base64": qr_base64,
+                }
+                add_user_sql(record)
+                st.image(img, width=200)
+                st.success(f"✅ QR creato per {nome} {cognome}")
 
 # --- VISUALIZZA QR ---
 elif page == "Visualizza QR":
@@ -296,6 +296,7 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
