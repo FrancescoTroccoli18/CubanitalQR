@@ -231,19 +231,17 @@ if page == "Lista partecipanti":
                 except Exception as e:
                     st.error(f"Errore nella cancellazione dell'utente: {e}")
 
-
 # --- GENERA QR ---
-elif page == "Genera QR":
-    st.header("🎫 Genera QR per partecipante")
-    nome = st.text_input("Nome")
-    cognome = st.text_input("Cognome")
-    telefono = st.text_input("Telefono")
-    email = st.text_input("Email")
-    tipo = st.selectbox("Tipo di pass", ["FullPack","FullPass"])
-    if st.button("Genera QR"):
-        if not (nome and cognome and email):
-            st.error("Inserisci Nome, Cognome ed Email.")
+if st.button("Genera QR"):
+    if not (nome and cognome and email):
+        st.error("Inserisci Nome, Cognome ed Email.")
+    else:
+        # 🔍 Controllo unicità email
+        existing = supabase.table("utenti").select("id").eq("email", email).execute()
+        if existing.data and len(existing.data) > 0:
+            st.error(f"⚠️ Esiste già un utente registrato con l'email {email}.")
         else:
+            # Procedi normalmente
             payload = {
                 "tipo": tipo,
                 "nome": nome,
@@ -291,6 +289,7 @@ elif page == "Visualizza QR":
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
