@@ -137,6 +137,12 @@ if logged_in != "True":
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
 
+# --- ENDPOINT PER UPTIMEROBOT ---
+page_param = st.experimental_get_query_params().get("page", [""])[0]
+if page_param == "Keep+Alive":
+    st.write("✅ App attiva")
+    st.stop()  # ferma l'esecuzione qui, non caricare nulla altro
+
 # Logo nella sidebar
 with st.sidebar:
     try:
@@ -159,14 +165,6 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🎫 Genera QR",
     "🔍 Visualizza QR"
 ])
-
-#tab5 = st.empty()  # tab “virtuale” nascosta per UptimeRobot
-
-with tab5.container():
-    # Controllo parametri GET
-    page_param = st.experimental_get_query_params().get("page", [""])[0]
-    if page_param == "Keep+Alive":
-        st.write("✅ App attiva")
 
 # --- CHECK-IN AUTOMATICO CON LOGIN ---
 with tab1:
@@ -353,6 +351,7 @@ with tab4:
 
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
