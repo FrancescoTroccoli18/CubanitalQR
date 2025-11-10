@@ -137,12 +137,6 @@ if logged_in != "True":
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
 
-# --- ENDPOINT PER UPTIMEROBOT ---
-page_param = st.experimental_get_query_params().get("page", [""])[0]
-if page_param == "Keep+Alive":
-    st.write("✅ App attiva")
-    st.stop()  # ferma l'esecuzione qui, non caricare nulla altro
-
 # Logo nella sidebar
 with st.sidebar:
     try:
@@ -159,11 +153,12 @@ with st.sidebar:
         st.rerun()
 
 # Tabs di navigazione
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📲 Check-in automatico",
     "📋 Lista partecipanti",
     "🎫 Genera QR",
-    "🔍 Visualizza QR"
+    "🔍 Visualizza QR",
+    "🟢 Keep Alive"
 ])
 
 # --- CHECK-IN AUTOMATICO CON LOGIN ---
@@ -351,29 +346,7 @@ with tab4:
 
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+with tab5:
+    st.header("🟢 Keep Alive")
+    st.write("✅ App attiva")
+    st.info("Questa tab serve per mantenere l'app Streamlit e il database Supabase attivi.")
