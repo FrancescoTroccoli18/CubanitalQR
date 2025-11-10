@@ -160,7 +160,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "🔍 Visualizza QR"
 ])
 
-tab5 = st.empty()  # tab “virtuale” nascosta per UptimeRobot
+#tab5 = st.empty()  # tab “virtuale” nascosta per UptimeRobot
 
 with tab5.container():
     # Controllo parametri GET
@@ -353,6 +353,7 @@ with tab4:
 
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
+
 
 
 
