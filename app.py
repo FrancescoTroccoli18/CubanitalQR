@@ -286,12 +286,16 @@ with tab3:
         if not (nome and cognome and email):
             st.error("Inserisci Nome, Cognome ed Email.")
         else:
-            # 🔍 Controllo unicità email
-            existing = supabase.table("utenti").select("id").eq("email", email).execute()
+            # 🔍 Controllo unicità Nome + Cognome
+            existing = supabase.table("utenti") \
+                .select("id") \
+                .eq("nome", nome) \
+                .eq("cognome", cognome) \
+                .execute()
+            
             if existing.data and len(existing.data) > 0:
-                st.error(f"⚠️ Esiste già un utente registrato con l'email {email}.")
+                st.error(f"⚠️ Esiste già un utente registrato con Nome '{nome}' e Cognome '{cognome}'.")
             else:
-                # Procedi normalmente
                 payload = {
                     "tipo": tipo,
                     "nome": nome,
@@ -356,6 +360,7 @@ with tab5:
     st.header("🟢 Keep Alive")
     st.write("✅ App attiva")
     st.info("Questa tab serve per mantenere l'app Streamlit e il database Supabase attivi.")
+
 
 
 
