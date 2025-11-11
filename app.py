@@ -212,9 +212,17 @@ with tab1:
 
 # --- LISTA PARTECIPANTI ---
 with tab2:
-    st_autorefresh(interval=5000, key="refresh")
+    #st_autorefresh(interval=5000, key="refresh")
     st.header("📋 Lista partecipanti")
-    rows = fetch_all_users()
+    
+    if "rows" not in st.session_state:
+        st.session_state.rows = fetch_all_users()
+
+    if st.button("Aggiorna lista"):
+        st.session_state.rows = fetch_all_users()
+
+    rows = st.session_state.rows
+    
     if not rows:
         st.warning("Nessun partecipante registrato.")
     else:
@@ -348,4 +356,5 @@ with tab5:
     st.header("🟢 Keep Alive")
     st.write("✅ App attiva")
     st.info("Questa tab serve per mantenere l'app Streamlit e il database Supabase attivi.")
+
 
