@@ -336,7 +336,7 @@ with tab4:
         if selected:
             user = rows[options.index(selected)]
             try:
-                qr_bytes = base64.b64decode(user["qr_base64"])
+                qr_bytes = base64.b64decode(user["qrbase64"])
                 img = Image.open(BytesIO(qr_bytes))
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
                 buf = BytesIO()
@@ -356,5 +356,6 @@ with tab5:
     st.header("🟢 Keep Alive")
     st.write("✅ App attiva")
     st.info("Questa tab serve per mantenere l'app Streamlit e il database Supabase attivi.")
+
 
 
