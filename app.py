@@ -311,7 +311,9 @@ with tab3:
                     "qr_base64": qr_base64,
                 }
                 add_user_sql(record)
-                st.image(img, width=200)
+
+                buf.close()
+                del img
                 st.success(f"✅ QR creato per {nome} {cognome}")
 
 # --- VISUALIZZA QR ---
@@ -326,27 +328,24 @@ with tab4:
         if selected:
             user = rows[options.index(selected)]
             try:
-                # Decodifica QR
-                qr_bytes = base64.b64decode(user["qrbase64"])
+                qr_bytes = base64.b64decode(user["qr_base64"])
                 img = Image.open(BytesIO(qr_bytes))
                 st.image(img, caption=f"QR di {user['nome']} {user['cognome']}", width=300)
-
-                # 🔽 Pulsante per scaricare come PNG
                 buf = BytesIO()
                 img.save(buf, format="PNG")
                 buf.seek(0)
-
-                file_name = f"QR_{user['nome']}_{user['cognome']}.png"
                 st.download_button(
                     label="📥 Scarica QR come PNG",
                     data=buf,
-                    file_name=file_name,
+                    file_name=f"QR_{user['nome']}_{user['cognome']}.png",
                     mime="image/png",
                 )
-
+                buf.close()
+                del img
             except Exception as e:
                 st.error(f"Errore nel decodificare il QR: {e}")
 with tab5:
     st.header("🟢 Keep Alive")
     st.write("✅ App attiva")
     st.info("Questa tab serve per mantenere l'app Streamlit e il database Supabase attivi.")
+
