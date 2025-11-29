@@ -1,0 +1,19 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # ogni 6 ore
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keep Supabase alive
+        run: |
+          curl -X POST \
+          "https://kwzoutbgvqadmlcmbauq.supabase.co/rest/v1/rpc/health_check" \
+          -H "apikey: ${{ secrets.SUPABASE_KEY }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d "{}"
