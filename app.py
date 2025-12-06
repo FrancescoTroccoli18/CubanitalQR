@@ -281,7 +281,7 @@ with tab3:
     cognome = st.text_input("Cognome") 
     telefono = st.text_input("Telefono") 
     email = st.text_input("Email") 
-    tipo = st.selectbox("Tipo di pass", ["FullPack","FullPass"])
+    tipo = st.selectbox("Tipo di pass", ["FullPack","FullPass","DayPass"])
     if st.button("Genera QR"):
         if not (nome and cognome and email):
             st.error("Inserisci Nome, Cognome ed Email.")
@@ -360,6 +360,7 @@ with tab5:
     st.header("🟢 Keep Alive")
     st.write("✅ App attiva")
     st.info("Questa tab serve per mantenere l'app Streamlit e il database Supabase attivi.")
+
 
 
 
