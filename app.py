@@ -417,7 +417,8 @@ with tab6:
     st.subheader("📑 Template email")
     subject = st.text_input("Oggetto", "Il tuo QR personale")
     body = st.text_area(
-        "<h3>Ciao {{nome}}</h3>,
+        """
+        <h3>Ciao {{nome}}</h3>,
         desideriamo ringraziarti per aver preso parte al nostro evento CUBANITAL 2026, che si svolgerà il 24 e 25 gennaio. La sua presenza contribuisce al successo dell’iniziativa e siamo lieti di averti con noi.
          
         In allegato troverai il QR Code del {{tipo_pass}} CUBANITAL 2026.     
@@ -454,7 +455,9 @@ with tab6:
         Best regards,
         THE CUBANITAL 2026 ORGANIZATION
 
-        QR Code:</p><img src='cid:qrimg'>"
+        QR Code:</p><img src='cid:qrimg'>
+        
+        """
     )
 
     # Funzione per invio email
@@ -502,6 +505,7 @@ with tab6:
                 st.error(f"Errore con {u['email']}: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
