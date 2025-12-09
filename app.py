@@ -502,9 +502,10 @@ with tab6:
 
                 st.success(f"📨 Email inviata a {u['nome']} {u['cognome']}")
             except Exception as e:
-                st.error(f"Errore con {u['email']}: {e}")
+                st.error(f"Errore: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
