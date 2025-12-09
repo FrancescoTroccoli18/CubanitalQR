@@ -411,7 +411,7 @@ with tab6:
     st.subheader("📮 Impostazioni SMTP")
     smtp_server = st.text_input("SMTP Server", "smtp.gmail.com")
     smtp_port = st.number_input("Porta", 587)
-    smtp_user = "afrocubaneventcubanital@gmail.com
+    smtp_user = "afrocubaneventcubanital@gmail.com"
     smtp_pass = "Kabiosile!"
 
     st.subheader("📑 Template email")
@@ -502,6 +502,7 @@ with tab6:
                 st.error(f"Errore con {u['email']}: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
