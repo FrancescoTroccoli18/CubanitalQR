@@ -384,9 +384,28 @@ with tab6:
 
     st.info(f"📌 Trovati **{len(not_sent)} utenti** senza email inviata.")
 
-    if len(not_sent) == 0:
-        st.success("🎉 Tutte le email sono già state inviate!")
-        st.stop()
+    # --- Mostra tabella con stato invio ---
+    st.subheader("📋 Lista partecipanti e stato email")
+    if lista:
+        for u in lista:
+            cols = st.columns([2,2,3,1,1])
+            cols[0].write(u["nome"])
+            cols[1].write(u["cognome"])
+            cols[2].write(u["email"])
+            # Mostra anteprima QR piccola
+            try:
+                qr_bytes = base64.b64decode(u["qrbase64"])
+                img = Image.open(BytesIO(qr_bytes))
+                cols[3].image(img, width=50)
+            except:
+                cols[3].write("❌")
+            # Mostra stato email
+            if u.get("sendedmail"):
+                cols[4].success("✅")
+            else:
+                cols[4].error("❌")
+    else:
+        st.warning("Nessun partecipante registrato.")
 
     # SMTP CONFIG
     st.subheader("📮 Impostazioni SMTP")
@@ -398,14 +417,48 @@ with tab6:
     st.subheader("📑 Template email")
     subject = st.text_input("Oggetto", "Il tuo QR personale")
     body = st.text_area(
-        "Corpo email (HTML)",
-        "<h3>Ciao {{nome}},</h3><p>Ecco il codice QR del tuo pass. Mostralo il giorno del tuo arrivo all'evento all'ingresso! Grazie per il tuo acquisto e ci vediamo all'evento! Ache!:</p><img src='cid:qrimg'>"
-        "<h3>Hello {{nome}},</h3><p>Here is the QR code for your pass. Please show it at the entrance on the day of your arrival at the event! Thank you for your purchase and see you at the event! Ache!:</p><img src='cid:qrimg'>"
-        "<h3>Hola, {{nome}},</h3><p>Aquí tienes el código QR de tu pase. ¡Muéstrale en la entrada el día que llegues al evento! Gracias por tu compra y ¡nos vemos en el evento! Ache!:</p><img src='cid:qrimg'>"
+        "<h3>Ciao {{nome}}</h3>,
+        desideriamo ringraziarti per aver preso parte al nostro evento CUBANITAL 2026, che si svolgerà il 24 e 25 gennaio. La sua presenza contribuisce al successo dell’iniziativa e siamo lieti di averti con noi.
+         
+        In allegato troverai il QR Code del {{tipo_pass}} CUBANITAL 2026.     
+        Il QR Code ti permetterà di accedere a tutte le attività comprese nel pacchetto.
+         
+        Ti ringraziamo ancora una volta per la partecipazione e restiamo a disposizione per qualsiasi necessità.
+         
+        Cordiali saluti,
+        L’ORGANIZZAZIONE CUBANITAL 2026
+
+        --------------------------------------------------
+
+        <h3>Hola, {{nome}}</h3>,
+        queremos agradecerte por participar en nuestro evento CUBANITAL 2026, que se llevará a cabo los días 24 y 25 de enero. Tu presencia contribuye al éxito de la iniciativa y nos complace tenerte con nosotros.
+         
+        Adjuntamos el código QR del {{tipo_pass}} CUBANITAL 2026.     
+        El código QR te permitirá acceder a todas las actividades incluidas en el paquete.
+         
+        Te agradecemos una vez más tu participación y quedamos a tu disposición para cualquier necesidad.
+         
+        Atentamente,
+        LA ORGANIZACIÓN CUBANITAL 2026.
+
+        -------------------------------------------------
+
+        <h3>Hello {{nome}}</h3>,
+        We would like to thank you for taking part in our CUBANITAL 2026 event, which will take place on January 24 and 25. Your presence contributes to the success of the initiative and we are delighted to have you with us.
+         
+        Attached you will find the QR Code for your CUBANITAL 2026 {{tipo_pass}}.     
+        The QR Code will allow you to access all the activities included in the package.
+         
+        Thank you once again for participating. Please do not hesitate to contact us if you have any questions.
+         
+        Best regards,
+        THE CUBANITAL 2026 ORGANIZATION
+
+        QR Code:</p><img src='cid:qrimg'>"
     )
 
     # Funzione per invio email
-    def send_email(to_email, qr_bytes, nome):
+    def send_email(to_email, qr_bytes, nome, tipo_pass):
         import smtplib
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
@@ -416,7 +469,7 @@ with tab6:
         msg["From"] = smtp_user
         msg["To"] = to_email
 
-        html = body.replace("{{nome}}", nome)
+        html = body.replace("{{nome}}", nome).replace("{{tipo_pass}}", tipo_pass)
 
         alt = MIMEMultipart("alternative")
         msg.attach(alt)
@@ -436,8 +489,9 @@ with tab6:
         for u in not_sent(:1):
             try:
                 qr_bytes = base64.b64decode(u["qrbase64"])
-                #send_email(u["email"], qr_bytes, u["nome"])
-                send_email("capriolooscuro@gmail.com", qr_bytes, "Francesco")
+                #send_email(u["email"], qr_bytes, u["nome"], u.get("tipo"))
+                send_email("capriolooscuro@gmail.com", qr_bytes, "Francesco", u.get("tipo"))
+
                 # Aggiorna checkinlog.sendedmail
                 #supabase.table("checkinlog").update({
                 #    "sendedmail": True
@@ -448,6 +502,8 @@ with tab6:
                 st.error(f"Errore con {u['email']}: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
+
 
 
 
