@@ -418,7 +418,7 @@ with tab6:
     subject = st.text_input("Oggetto", "QR – CUBANITAL 2026")
     body = st.text_area(
         """
-        <h3>Ciao {{nome}}</h3>,
+        <h3>Ciao {{nome}}</h3>
         desideriamo ringraziarti per aver preso parte al nostro evento CUBANITAL 2026, che si svolgerà il 24 e 25 gennaio. La sua presenza contribuisce al successo dell’iniziativa e siamo lieti di averti con noi.
          
         In allegato troverai il QR Code del {{tipo_pass}} CUBANITAL 2026.     
@@ -431,7 +431,7 @@ with tab6:
 
         --------------------------------------------------
 
-        <h3>Hola, {{nome}}</h3>,
+        <h3>Hola, {{nome}}</h3>
         queremos agradecerte por participar en nuestro evento CUBANITAL 2026, que se llevará a cabo los días 24 y 25 de enero. Tu presencia contribuye al éxito de la iniciativa y nos complace tenerte con nosotros.
          
         Adjuntamos el código QR del {{tipo_pass}} CUBANITAL 2026.     
@@ -444,7 +444,7 @@ with tab6:
 
         -------------------------------------------------
 
-        <h3>Hello {{nome}}</h3>,
+        <h3>Hello {{nome}}</h3>
         We would like to thank you for taking part in our CUBANITAL 2026 event, which will take place on January 24 and 25. Your presence contributes to the success of the initiative and we are delighted to have you with us.
          
         Attached you will find the QR Code for your CUBANITAL 2026 {{tipo_pass}}.     
@@ -506,6 +506,7 @@ with tab6:
                 st.error(f"Errore: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
