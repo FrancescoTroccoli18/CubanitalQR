@@ -415,7 +415,7 @@ with tab6:
     smtp_pass = "Kabiosile!"
 
     st.subheader("📑 Template email")
-    subject = st.text_input("Oggetto", "Il tuo QR personale")
+    subject = st.text_input("Oggetto", "QR – CUBANITAL 2026")
     body = st.text_area(
         """
         <h3>Ciao {{nome}}</h3>,
@@ -505,6 +505,7 @@ with tab6:
                 st.error(f"Errore con {u['email']}: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
