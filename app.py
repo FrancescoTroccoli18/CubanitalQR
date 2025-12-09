@@ -88,7 +88,8 @@ def add_user_sql(record):
     supabase.table("checkinlog").insert({
         "userid": user_id,
         "checked": False,
-        "checkedat": None
+        "checkedat": None,
+        "sendedmail":False
     }).execute()
     return user_id
 
@@ -153,12 +154,13 @@ with st.sidebar:
         st.rerun()
 
 # Tabs di navigazione
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📲 Check-in automatico",
     "📋 Lista partecipanti",
     "🎫 Genera QR",
     "🔍 Visualizza QR",
-    "🟢 Keep Alive"
+    "🟢 Keep Alive",
+    "📧 Invia Email QR"
 ])
 
 # --- CHECK-IN AUTOMATICO CON LOGIN ---
@@ -361,6 +363,91 @@ with tab5:
     st.write("✅ App attiva")
     st.info("Questa tab serve per mantenere l'app Streamlit e il database Supabase attivi.")
 
+
+# --- INVIA EMAIL QR (solo utenti senza email inviata) ---
+with tab6:
+    st.header("📧 Invia email QR ai partecipanti (solo non inviati)")
+
+    # Prelevo utenti e checkinlog
+    utenti = fetch_all_users()
+    checkin = supabase.table("checkinlog").select("*").execute().data
+
+    # Join manuale utenti ↔ checkinlog
+    lista = []
+    for u in utenti:
+        cl = next((c for c in checkin if c["userid"] == u["id"]), None)
+        if cl:
+            lista.append({**u, **cl})
+
+    # Filtra solo quelli senza sendedmail
+    not_sent = [u for u in lista if not u.get("sendedmail", False)]
+
+    st.info(f"📌 Trovati **{len(not_sent)} utenti** senza email inviata.")
+
+    if len(not_sent) == 0:
+        st.success("🎉 Tutte le email sono già state inviate!")
+        st.stop()
+
+    # SMTP CONFIG
+    st.subheader("📮 Impostazioni SMTP")
+    smtp_server = st.text_input("SMTP Server", "smtp.gmail.com")
+    smtp_port = st.number_input("Porta", 587)
+    smtp_user = "afrocubaneventcubanital@gmail.com
+    smtp_pass = "Kabiosile!"
+
+    st.subheader("📑 Template email")
+    subject = st.text_input("Oggetto", "Il tuo QR personale")
+    body = st.text_area(
+        "Corpo email (HTML)",
+        "<h3>Ciao {{nome}},</h3><p>Ecco il codice QR del tuo pass. Mostralo il giorno del tuo arrivo all'evento all'ingresso! Grazie per il tuo acquisto e ci vediamo all'evento! Ache!:</p><img src='cid:qrimg'>"
+        "<h3>Hello {{nome}},</h3><p>Here is the QR code for your pass. Please show it at the entrance on the day of your arrival at the event! Thank you for your purchase and see you at the event! Ache!:</p><img src='cid:qrimg'>"
+        "<h3>Hola, {{nome}},</h3><p>Aquí tienes el código QR de tu pase. ¡Muéstrale en la entrada el día que llegues al evento! Gracias por tu compra y ¡nos vemos en el evento! Ache!:</p><img src='cid:qrimg'>"
+    )
+
+    # Funzione per invio email
+    def send_email(to_email, qr_bytes, nome):
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from email.mime.image import MIMEImage
+
+        msg = MIMEMultipart("related")
+        msg["Subject"] = subject
+        msg["From"] = smtp_user
+        msg["To"] = to_email
+
+        html = body.replace("{{nome}}", nome)
+
+        alt = MIMEMultipart("alternative")
+        msg.attach(alt)
+        alt.attach(MIMEText(html, "html"))
+
+        img = MIMEImage(qr_bytes)
+        img.add_header("Content-ID", "<qrimg>")
+        msg.attach(img)
+
+        with smtplib.SMTP(smtp_server, smtp_port) as s:
+            s.starttls()
+            s.login(smtp_user, smtp_pass)
+            s.send_message(msg)
+
+    # Bottone invio email
+    if st.button("📤 INVIA EMAIL A TUTTI I NON INVIATI"):
+        for u in not_sent(:1):
+            try:
+                qr_bytes = base64.b64decode(u["qrbase64"])
+                #send_email(u["email"], qr_bytes, u["nome"])
+                send_email("capriolooscuro@gmail.com", qr_bytes, "Francesco")
+                # Aggiorna checkinlog.sendedmail
+                #supabase.table("checkinlog").update({
+                #    "sendedmail": True
+                #}).eq("userid", u["id"]).execute()
+
+                st.success(f"📨 Email inviata a {u['nome']} {u['cognome']}")
+            except Exception as e:
+                st.error(f"Errore con {u['email']}: {e}")
+
+        st.success("✅ Tutte le email sono state elaborate!")
 
 
 
