@@ -489,7 +489,7 @@ with tab6:
 
     # Bottone invio email
     if st.button("📤 INVIA EMAIL A TUTTI I NON INVIATI"):
-        for u in not_sent(:1):
+        for u in not_sent[0]:
             try:
                 qr_bytes = base64.b64decode(u["qrbase64"])
                 #send_email(u["email"], qr_bytes, u["nome"], u.get("tipo"))
@@ -505,6 +505,7 @@ with tab6:
                 st.error(f"Errore con {u['email']}: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
