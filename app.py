@@ -146,7 +146,7 @@ def send_email(to_email, qr_bytes, nome, tipo_pass):
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
     smtp_user = "afrocubaneventcubanital@gmail.com"
-    smtp_pass = "Kabiosile!"
+    smtp_pass = "ohas bhgp acbm gcuy" #"Kabiosile!"
 
     st.subheader("📑 Template email")
     subject = "QR – CUBANITAL 2026"
@@ -519,6 +519,7 @@ with tab6:
                 st.error(f"Errore: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
