@@ -134,87 +134,6 @@ if logged_in != "True":
             st.error("❌ Username o password errati")
     st.stop()
 
-# ------------------- EMAIL ---------------------
-def send_email(to_email, qr_bytes, nome, tipo_pass):
-    import smtplib
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.text import MIMEText
-    from email.mime.image import MIMEImage
-
-    # SMTP CONFIG
-    st.subheader("📮 Impostazioni SMTP")
-    smtp_server = "smtp.gmail.com"
-    smtp_port = 587
-    smtp_user = "afrocubaneventcubanital@gmail.com"
-    smtp_pass = "ohas bhgp acbm gcuy" #"Kabiosile!"
-
-    st.subheader("📑 Template email")
-    subject = "QR – CUBANITAL 2026"
-    body = st.text_area(
-        """
-        <h3>Ciao {{nome}}</h3>
-        desideriamo ringraziarti per aver preso parte al nostro evento CUBANITAL 2026, che si svolgerà il 24 e 25 gennaio. La sua presenza contribuisce al successo dell’iniziativa e siamo lieti di averti con noi.
-         
-        In allegato troverai il QR Code del {{tipo_pass}} CUBANITAL 2026.     
-        Il QR Code ti permetterà di accedere a tutte le attività comprese nel pacchetto.
-         
-        Ti ringraziamo ancora una volta per la partecipazione e restiamo a disposizione per qualsiasi necessità.
-         
-        Cordiali saluti,
-        L’ORGANIZZAZIONE CUBANITAL 2026
-
-        --------------------------------------------------
-
-        <h3>Hola, {{nome}}</h3>
-        queremos agradecerte por participar en nuestro evento CUBANITAL 2026, que se llevará a cabo los días 24 y 25 de enero. Tu presencia contribuye al éxito de la iniciativa y nos complace tenerte con nosotros.
-         
-        Adjuntamos el código QR del {{tipo_pass}} CUBANITAL 2026.     
-        El código QR te permitirá acceder a todas las actividades incluidas en el paquete.
-         
-        Te agradecemos una vez más tu participación y quedamos a tu disposición para cualquier necesidad.
-         
-        Atentamente,
-        LA ORGANIZACIÓN CUBANITAL 2026.
-
-        -------------------------------------------------
-
-        <h3>Hello {{nome}}</h3>
-        We would like to thank you for taking part in our CUBANITAL 2026 event, which will take place on January 24 and 25. Your presence contributes to the success of the initiative and we are delighted to have you with us.
-         
-        Attached you will find the QR Code for your CUBANITAL 2026 {{tipo_pass}}.     
-        The QR Code will allow you to access all the activities included in the package.
-         
-        Thank you once again for participating. Please do not hesitate to contact us if you have any questions.
-         
-        Best regards,
-        THE CUBANITAL 2026 ORGANIZATION
-
-        QR Code:</p><img src='cid:qrimg'>
-        
-        """
-    )
-
-    msg = MIMEMultipart("related")
-    msg["Subject"] = subject
-    msg["From"] = smtp_user
-    msg["To"] = to_email
-
-    html = body.replace("{{nome}}", nome).replace("{{tipo_pass}}", tipo_pass)
-
-    alt = MIMEMultipart("alternative")
-    msg.attach(alt)
-    alt.attach(MIMEText(html, "html"))
-
-    img = MIMEImage(qr_bytes)
-    img.add_header("Content-ID", "<qrimg>")
-    msg.attach(img)
-
-    with smtplib.SMTP(smtp_server, smtp_port) as s:
-        s.starttls()
-        s.login(smtp_user, smtp_pass)
-        s.send_message(msg)
-        
-
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
 
@@ -234,13 +153,12 @@ with st.sidebar:
         st.rerun()
 
 # Tabs di navigazione
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📲 Check-in automatico",
     "📋 Lista partecipanti",
     "🎫 Genera QR",
     "🔍 Visualizza QR",
-    "🟢 Keep Alive",
-    "📧 Invia Email QR"
+    "🟢 Keep Alive"
 ])
 
 # --- CHECK-IN AUTOMATICO CON LOGIN ---
@@ -443,82 +361,6 @@ with tab5:
     st.write("✅ App attiva")
     st.info("Questa tab serve per mantenere l'app Streamlit e il database Supabase attivi.")
 
-
-# --- INVIA EMAIL QR (solo utenti senza email inviata) ---
-with tab6:
-    st.header("📧 Invia email QR ai partecipanti (solo non inviati)")
-
-    # Prelevo utenti e checkinlog
-    utenti = fetch_all_users()
-    checkin = supabase.table("checkinlog").select("*").execute().data
-
-    # Join manuale utenti ↔ checkinlog
-    lista = []
-    for u in utenti:
-        cl = next((c for c in checkin if c["userid"] == u["id"]), None)
-        if cl:
-            lista.append({**u, **cl})
-
-    # Filtra solo quelli senza sendedmail
-    not_sent = [u for u in lista if not u.get("sendedmail", False)]
-
-    st.info(f"📌 Trovati **{len(not_sent)} utenti** senza email inviata.")
-
-    # --- Mostra tabella con stato invio ---
-    st.subheader("📋 Lista partecipanti e stato email")
-    if lista:
-        for u in lista:
-            cols = st.columns([2,2,3,1,1,2])
-            cols[0].write(u["nome"])
-            cols[1].write(u["cognome"])
-            cols[2].write(u["email"])
-            # Mostra anteprima QR piccola
-            try:
-                qr_bytes = base64.b64decode(u["qrbase64"])
-                img = Image.open(BytesIO(qr_bytes))
-                cols[3].image(img, width=50)
-            except:
-                cols[3].write("❌")
-            # Mostra stato email
-            if u.get("sendedmail"):
-                cols[4].success("✅")
-            else:
-                cols[4].error("❌")
-
-            # Pulsante invio singolo
-            if cols[5].button("📤 Invia email", key=f"send_{u['id']}"):
-                try:
-                    qr_bytes = base64.b64decode(u["qrbase64"])
-                    #send_email(u["email"], qr_bytes, u["nome"], u.get("tipo"))
-                    send_email("capriolooscuro@gmail.com", qr_bytes, u["nome"], u.get("tipo"))
-                    # Aggiorna checkinlog su Supabase se necessario
-                    # supabase.table("checkinlog").update({"sendedmail": True}).eq("userid", u["id"]).execute()
-
-                    st.success(f"📨 Email inviata a {u['nome']} {u['cognome']}")
-                except Exception as e:
-                    st.error(f"Errore invio: {e}")
-    else:
-        st.warning("Nessun partecipante registrato.")
-
-    # Bottone invio email
-    if st.button("📤 INVIA EMAIL A TUTTI I NON INVIATI"):
-        st.write(not_sent)
-        for u in not_sent[0]:
-            try:
-                qr_bytes = base64.b64decode(u["qrbase64"])
-                #send_email(u["email"], qr_bytes, u["nome"], u.get("tipo"))
-                send_email("capriolooscuro@gmail.com", qr_bytes, "Francesco", u.get("tipo"))
-
-                # Aggiorna checkinlog.sendedmail
-                #supabase.table("checkinlog").update({
-                #    "sendedmail": True
-                #}).eq("userid", u["id"]).execute()
-
-                st.success(f"📨 Email inviata a {u['nome']} {u['cognome']}")
-            except Exception as e:
-                st.error(f"Errore: {e}")
-
-        st.success("✅ Tutte le email sono state elaborate!")
 
 
 
