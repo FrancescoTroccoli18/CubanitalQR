@@ -404,6 +404,19 @@ with tab6:
                 cols[4].success("✅")
             else:
                 cols[4].error("❌")
+
+            # Pulsante invio singolo
+            if cols[5].button("📤 Invia email", key=f"send_{u['id']}"):
+                try:
+                    qr_bytes = base64.b64decode(u["qrbase64"])
+                    #send_email(u["email"], qr_bytes, u["nome"], u.get("tipo"))
+                    send_email("capriolooscuro@gmail.com", qr_bytes, u["nome"], u.get("tipo"))
+                    # Aggiorna checkinlog su Supabase se necessario
+                    # supabase.table("checkinlog").update({"sendedmail": True}).eq("userid", u["id"]).execute()
+
+                    st.success(f"📨 Email inviata a {u['nome']} {u['cognome']}")
+                except Exception as e:
+                    st.error(f"Errore invio: {e}")
     else:
         st.warning("Nessun partecipante registrato.")
 
@@ -506,6 +519,7 @@ with tab6:
                 st.error(f"Errore: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
