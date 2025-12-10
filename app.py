@@ -134,6 +134,32 @@ if logged_in != "True":
             st.error("❌ Username o password errati")
     st.stop()
 
+# ------------------- EMAIL ---------------------
+def send_email(to_email, qr_bytes, nome, tipo_pass):
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.mime.image import MIMEImage
+
+    msg = MIMEMultipart("related")
+    msg["Subject"] = subject
+    msg["From"] = smtp_user
+    msg["To"] = to_email
+
+    html = body.replace("{{nome}}", nome).replace("{{tipo_pass}}", tipo_pass)
+
+    alt = MIMEMultipart("alternative")
+    msg.attach(alt)
+    alt.attach(MIMEText(html, "html"))
+
+    img = MIMEImage(qr_bytes)
+    img.add_header("Content-ID", "<qrimg>")
+    msg.attach(img)
+
+    with smtplib.SMTP(smtp_server, smtp_port) as s:
+        s.starttls()
+        s.login(smtp_user, smtp_pass)
+        s.send_message(msg)
 
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
@@ -473,33 +499,6 @@ with tab6:
         """
     )
 
-    # Funzione per invio email
-    def send_email(to_email, qr_bytes, nome, tipo_pass):
-        import smtplib
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
-        from email.mime.image import MIMEImage
-
-        msg = MIMEMultipart("related")
-        msg["Subject"] = subject
-        msg["From"] = smtp_user
-        msg["To"] = to_email
-
-        html = body.replace("{{nome}}", nome).replace("{{tipo_pass}}", tipo_pass)
-
-        alt = MIMEMultipart("alternative")
-        msg.attach(alt)
-        alt.attach(MIMEText(html, "html"))
-
-        img = MIMEImage(qr_bytes)
-        img.add_header("Content-ID", "<qrimg>")
-        msg.attach(img)
-
-        with smtplib.SMTP(smtp_server, smtp_port) as s:
-            s.starttls()
-            s.login(smtp_user, smtp_pass)
-            s.send_message(msg)
-
     # Bottone invio email
     if st.button("📤 INVIA EMAIL A TUTTI I NON INVIATI"):
         st.write(not_sent)
@@ -519,6 +518,7 @@ with tab6:
                 st.error(f"Errore: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
