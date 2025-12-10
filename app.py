@@ -141,6 +141,59 @@ def send_email(to_email, qr_bytes, nome, tipo_pass):
     from email.mime.text import MIMEText
     from email.mime.image import MIMEImage
 
+    # SMTP CONFIG
+    st.subheader("📮 Impostazioni SMTP")
+    smtp_server = "smtp.gmail.com"
+    smtp_port = 587
+    smtp_user = "afrocubaneventcubanital@gmail.com"
+    smtp_pass = "Kabiosile!"
+
+    st.subheader("📑 Template email")
+    subject = "QR – CUBANITAL 2026"
+    body = st.text_area(
+        """
+        <h3>Ciao {{nome}}</h3>
+        desideriamo ringraziarti per aver preso parte al nostro evento CUBANITAL 2026, che si svolgerà il 24 e 25 gennaio. La sua presenza contribuisce al successo dell’iniziativa e siamo lieti di averti con noi.
+         
+        In allegato troverai il QR Code del {{tipo_pass}} CUBANITAL 2026.     
+        Il QR Code ti permetterà di accedere a tutte le attività comprese nel pacchetto.
+         
+        Ti ringraziamo ancora una volta per la partecipazione e restiamo a disposizione per qualsiasi necessità.
+         
+        Cordiali saluti,
+        L’ORGANIZZAZIONE CUBANITAL 2026
+
+        --------------------------------------------------
+
+        <h3>Hola, {{nome}}</h3>
+        queremos agradecerte por participar en nuestro evento CUBANITAL 2026, que se llevará a cabo los días 24 y 25 de enero. Tu presencia contribuye al éxito de la iniciativa y nos complace tenerte con nosotros.
+         
+        Adjuntamos el código QR del {{tipo_pass}} CUBANITAL 2026.     
+        El código QR te permitirá acceder a todas las actividades incluidas en el paquete.
+         
+        Te agradecemos una vez más tu participación y quedamos a tu disposición para cualquier necesidad.
+         
+        Atentamente,
+        LA ORGANIZACIÓN CUBANITAL 2026.
+
+        -------------------------------------------------
+
+        <h3>Hello {{nome}}</h3>
+        We would like to thank you for taking part in our CUBANITAL 2026 event, which will take place on January 24 and 25. Your presence contributes to the success of the initiative and we are delighted to have you with us.
+         
+        Attached you will find the QR Code for your CUBANITAL 2026 {{tipo_pass}}.     
+        The QR Code will allow you to access all the activities included in the package.
+         
+        Thank you once again for participating. Please do not hesitate to contact us if you have any questions.
+         
+        Best regards,
+        THE CUBANITAL 2026 ORGANIZATION
+
+        QR Code:</p><img src='cid:qrimg'>
+        
+        """
+    )
+
     msg = MIMEMultipart("related")
     msg["Subject"] = subject
     msg["From"] = smtp_user
@@ -160,6 +213,7 @@ def send_email(to_email, qr_bytes, nome, tipo_pass):
         s.starttls()
         s.login(smtp_user, smtp_pass)
         s.send_message(msg)
+        
 
 # ------------------ STREAMLIT ------------------
 st.set_page_config(page_title="QR Check-in", layout="wide")
@@ -446,59 +500,6 @@ with tab6:
     else:
         st.warning("Nessun partecipante registrato.")
 
-    # SMTP CONFIG
-    st.subheader("📮 Impostazioni SMTP")
-    smtp_server = st.text_input("SMTP Server", "smtp.gmail.com")
-    smtp_port = st.number_input("Porta", 587)
-    smtp_user = "afrocubaneventcubanital@gmail.com"
-    smtp_pass = "Kabiosile!"
-
-    st.subheader("📑 Template email")
-    subject = st.text_input("Oggetto", "QR – CUBANITAL 2026")
-    body = st.text_area(
-        """
-        <h3>Ciao {{nome}}</h3>
-        desideriamo ringraziarti per aver preso parte al nostro evento CUBANITAL 2026, che si svolgerà il 24 e 25 gennaio. La sua presenza contribuisce al successo dell’iniziativa e siamo lieti di averti con noi.
-         
-        In allegato troverai il QR Code del {{tipo_pass}} CUBANITAL 2026.     
-        Il QR Code ti permetterà di accedere a tutte le attività comprese nel pacchetto.
-         
-        Ti ringraziamo ancora una volta per la partecipazione e restiamo a disposizione per qualsiasi necessità.
-         
-        Cordiali saluti,
-        L’ORGANIZZAZIONE CUBANITAL 2026
-
-        --------------------------------------------------
-
-        <h3>Hola, {{nome}}</h3>
-        queremos agradecerte por participar en nuestro evento CUBANITAL 2026, que se llevará a cabo los días 24 y 25 de enero. Tu presencia contribuye al éxito de la iniciativa y nos complace tenerte con nosotros.
-         
-        Adjuntamos el código QR del {{tipo_pass}} CUBANITAL 2026.     
-        El código QR te permitirá acceder a todas las actividades incluidas en el paquete.
-         
-        Te agradecemos una vez más tu participación y quedamos a tu disposición para cualquier necesidad.
-         
-        Atentamente,
-        LA ORGANIZACIÓN CUBANITAL 2026.
-
-        -------------------------------------------------
-
-        <h3>Hello {{nome}}</h3>
-        We would like to thank you for taking part in our CUBANITAL 2026 event, which will take place on January 24 and 25. Your presence contributes to the success of the initiative and we are delighted to have you with us.
-         
-        Attached you will find the QR Code for your CUBANITAL 2026 {{tipo_pass}}.     
-        The QR Code will allow you to access all the activities included in the package.
-         
-        Thank you once again for participating. Please do not hesitate to contact us if you have any questions.
-         
-        Best regards,
-        THE CUBANITAL 2026 ORGANIZATION
-
-        QR Code:</p><img src='cid:qrimg'>
-        
-        """
-    )
-
     # Bottone invio email
     if st.button("📤 INVIA EMAIL A TUTTI I NON INVIATI"):
         st.write(not_sent)
@@ -518,6 +519,7 @@ with tab6:
                 st.error(f"Errore: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
