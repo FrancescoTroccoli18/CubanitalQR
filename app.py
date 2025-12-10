@@ -388,7 +388,7 @@ with tab6:
     st.subheader("📋 Lista partecipanti e stato email")
     if lista:
         for u in lista:
-            cols = st.columns([2,2,3,1,1])
+            cols = st.columns([2,2,3,1,1,2])
             cols[0].write(u["nome"])
             cols[1].write(u["cognome"])
             cols[2].write(u["email"])
@@ -519,6 +519,7 @@ with tab6:
                 st.error(f"Errore: {e}")
 
         st.success("✅ Tutte le email sono state elaborate!")
+
 
 
 
