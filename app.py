@@ -490,19 +490,17 @@ with tab6:
     header[4].markdown("**Tipo**")
     header[5].markdown("**Email inviata**")
 
-    selezionati = []
-
+    # --- Checkbox senza riassegnare session_state ---
     for u in utenti_completi:
         cols = st.columns([1,2,2,3,2,2])
-
         key = f"sendmail_{u['id']}"
 
-        # inizializza lo stato della checkbox se non presente
+        # inizializza session_state se non presente
         if key not in st.session_state:
             st.session_state[key] = False
 
-        # checkbox con session_state
-        st.session_state[key] = cols[0].checkbox(
+        # crea la checkbox, Streamlit gestisce session_state
+        cols[0].checkbox(
             label="Seleziona",
             value=st.session_state[key],
             key=key,
@@ -515,23 +513,19 @@ with tab6:
         cols[4].write(u["tipo"])
         cols[5].write("✅" if u.get("sendedmail") else "❌")
 
-        # aggiungi selezionati
-        if st.session_state[key]:
-            selezionati.append(u)
+    # --- Raccogli selezionati solo qui ---
+    selezionati = [u for u in utenti_completi if st.session_state.get(f"sendmail_{u['id']}", False)]
 
     st.markdown("---")
 
-    # Pulsante invio email
     if st.button(f"📤 Invia email a {len(selezionati)} utenti"):
         if not selezionati:
             st.warning("⚠️ Nessun utente selezionato.")
         else:
             progress = st.progress(0.0)
-
             for i, u in enumerate(selezionati, start=1):
                 try:
                     qr_bytes = base64.b64decode(u["qrbase64"])
-                    # uso esatto delle tue funzioni
                     send_email(u["email"], qr_bytes, u["nome"], u["tipo"])
                     mark_email_sent(u["id"])
                     progress.progress(i / len(selezionati))
@@ -540,7 +534,8 @@ with tab6:
 
             st.success("✅ Invio email completato")
             time.sleep(2)
-            st.rerun()  # aggiorna le checkbox e lo stato "Email inviata"
+            st.rerun()
+
 
 
 
