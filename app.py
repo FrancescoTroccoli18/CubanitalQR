@@ -495,11 +495,9 @@ with tab6:
         cols = st.columns([1,2,2,3,2,2])
         key = f"sendmail_{u['id']}"
 
-        # inizializza session_state se non presente
         if key not in st.session_state:
             st.session_state[key] = False
 
-        # crea la checkbox, Streamlit gestisce session_state
         cols[0].checkbox(
             label="Seleziona",
             value=st.session_state[key],
@@ -513,7 +511,7 @@ with tab6:
         cols[4].write(u["tipo"])
         cols[5].write("✅" if u.get("sendedmail") else "❌")
 
-    # --- Raccogli selezionati solo qui ---
+    # --- Raccogli selezionati ---
     selezionati = [u for u in utenti_completi if st.session_state.get(f"sendmail_{u['id']}", False)]
 
     st.markdown("---")
@@ -523,18 +521,37 @@ with tab6:
             st.warning("⚠️ Nessun utente selezionato.")
         else:
             progress = st.progress(0.0)
+            log_container = st.empty()  # contenitore per il log
+
             for i, u in enumerate(selezionati, start=1):
+                log_msgs = []
+
                 try:
+                    log_msgs.append(f"➡️ Elaborando {u['nome']} {u['cognome']} ({u['email']})")
                     qr_bytes = base64.b64decode(u["qrbase64"])
+                    log_msgs.append("🔹 QR decodificato con successo")
+
+                    # Invio email
                     send_email(u["email"], qr_bytes, u["nome"], u["tipo"])
+                    log_msgs.append("✅ Email inviata con successo")
+
+                    # Aggiorna DB
                     mark_email_sent(u["id"])
-                    progress.progress(i / len(selezionati))
+                    log_msgs.append("📝 Stato DB aggiornato a 'email inviata'")
+
                 except Exception as e:
-                    st.error(f"❌ Errore con {u['email']}: {e}")
+                    log_msgs.append(f"❌ Errore: {e}")
+
+                # Mostra log cumulativo
+                log_container.text("\n".join(log_msgs))
+
+                # Aggiorna progress bar
+                progress.progress(i / len(selezionati))
 
             st.success("✅ Invio email completato")
-            time.sleep(2)
             st.rerun()
+
+
 
 
 
