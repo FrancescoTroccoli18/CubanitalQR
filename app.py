@@ -24,6 +24,10 @@ BASE_URL = "https://cubanitalqr-production.up.railway.app/"
 PASSPHRASE = "MySecretKey12345"
 KDF_SALT = b"fixed_salt_2025"
 
+# SMTP Gmail
+SMTP_USER = "afrocubaneventcubanital@gmail.com"
+SMTP_PASS = "ohas bhgp acbm gcuy"
+
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ------------------ KEEP ALIVE ------------------
@@ -528,6 +532,7 @@ with tab6:
 
             st.success("✅ Invio email completato")
             st.rerun()
+
 
 
 
