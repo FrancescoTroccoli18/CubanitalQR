@@ -490,11 +490,10 @@ with tab6:
     header[4].markdown("**Tipo**")
     header[5].markdown("**Email inviata**")
 
-    # --- Checkbox senza riassegnare session_state ---
+    # --- Checkbox ---
     for u in utenti_completi:
         cols = st.columns([1,2,2,3,2,2])
         key = f"sendmail_{u['id']}"
-
         if key not in st.session_state:
             st.session_state[key] = False
 
@@ -504,16 +503,13 @@ with tab6:
             key=key,
             label_visibility="collapsed"
         )
-
         cols[1].write(u["nome"])
         cols[2].write(u["cognome"])
         cols[3].write(u["email"])
         cols[4].write(u["tipo"])
         cols[5].write("✅" if u.get("sendedmail") else "❌")
 
-    # --- Raccogli selezionati ---
     selezionati = [u for u in utenti_completi if st.session_state.get(f"sendmail_{u['id']}", False)]
-
     st.markdown("---")
 
     if st.button(f"📤 Invia email a {len(selezionati)} utenti"):
@@ -521,35 +517,46 @@ with tab6:
             st.warning("⚠️ Nessun utente selezionato.")
         else:
             progress = st.progress(0.0)
-            log_container = st.empty()  # contenitore per il log
+            log_container = st.empty()
+            log_list = []
 
             for i, u in enumerate(selezionati, start=1):
-                log_msgs = []
-
                 try:
-                    log_msgs.append(f"➡️ Elaborando {u['nome']} {u['cognome']} ({u['email']})")
+                    log_list.append(f"➡️ Elaborando {u['nome']} {u['cognome']} ({u['email']})")
                     qr_bytes = base64.b64decode(u["qrbase64"])
-                    log_msgs.append("🔹 QR decodificato con successo")
+                    log_list.append("🔹 QR decodificato con successo")
 
-                    # Invio email
-                    send_email(u["email"], qr_bytes, u["nome"], u["tipo"])
-                    log_msgs.append("✅ Email inviata con successo")
+                    # LOG SMTP dettagliato
+                    log_list.append("🔹 Connessione SMTP...")
+                    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
+                        server.set_debuglevel(1)  # stampa log SMTP su console
+                        server.starttls()
+                        log_list.append("🔹 TLS avviato")
+                        server.login(SMTP_USER, SMTP_PASS)
+                        log_list.append("🔹 Login SMTP effettuato")
+                        msg = MIMEMultipart("related")
+                        msg["Subject"] = "TEST INVIO EMAIL"
+                        msg["From"] = SMTP_USER
+                        msg["To"] = u["email"]
+                        msg.attach(MIMEText("Test invio email", "plain"))
+                        server.send_message(msg)
+                        log_list.append("✅ Email inviata con successo")
 
                     # Aggiorna DB
                     mark_email_sent(u["id"])
-                    log_msgs.append("📝 Stato DB aggiornato a 'email inviata'")
+                    log_list.append("📝 Stato DB aggiornato a 'email inviata'")
 
                 except Exception as e:
-                    log_msgs.append(f"❌ Errore: {e}")
+                    import traceback
+                    tb = traceback.format_exc()
+                    log_list.append(f"❌ Errore: {e}\n{tb}")
 
-                # Mostra log cumulativo
-                log_container.text("\n".join(log_msgs))
-
-                # Aggiorna progress bar
+                log_container.text("\n".join(log_list))
                 progress.progress(i / len(selezionati))
 
             st.success("✅ Invio email completato")
             st.rerun()
+
 
 
 
