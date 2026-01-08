@@ -383,7 +383,7 @@ with tab3:
     cognome = st.text_input("Cognome") 
     telefono = st.text_input("Telefono") 
     email = st.text_input("Email") 
-    tipo = st.selectbox("Tipo di pass", ["FullPack","FullPass","DayPass-S","DayPass-D"])
+    tipo = st.selectbox("Tipo di pass", ["FullPass","DayPass-S","DayPass-D"])
     if st.button("Genera QR"):
         if not (nome and cognome and email):
             st.error("Inserisci Nome, Cognome ed Email.")
@@ -556,6 +556,7 @@ with tab6:
 
             st.success("✅ Invio email completato")
             st.rerun()
+
 
 
 
