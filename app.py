@@ -217,8 +217,6 @@ def send_email(to_email, qr_bytes, nome, tipo_pass):
     img = MIMEImage(qr_bytes)
     img.add_header("Content-ID", "<qrimg>")
     msg.attach(img)
-
-    st.write("FILE ESISTE:", os.path.exists("locandina_cubanital.jpg"))
     
     # Allego l'immagine di sfondo
     with open("locandina_cubanital.jpg", "rb") as f:
@@ -268,6 +266,8 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 # --- CHECK-IN AUTOMATICO CON LOGIN ---
 with tab1:
     st.header("📲 Check-in automatico")
+
+    st.write("FILE ESISTE:", os.path.exists("locandina_cubanital.jpg"))
     
     token_param = st.experimental_get_query_params().get("token")
 
@@ -569,4 +569,5 @@ with tab6:
 
             st.success("✅ Email inviate agli utenti selezionati")
             st.rerun()
+
 
