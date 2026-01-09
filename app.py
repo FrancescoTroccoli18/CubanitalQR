@@ -11,7 +11,7 @@ from io import BytesIO
 from PIL import Image
 from streamlit_autorefresh import st_autorefresh
 from streamlit_cookies_manager import EncryptedCookieManager
-
+import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -569,5 +569,6 @@ with tab6:
 
             st.success("✅ Email inviate agli utenti selezionati")
             st.rerun()
+
 
 
