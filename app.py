@@ -466,7 +466,6 @@ with tab5:
 with tab6:
     st.header("📧 Invio Email con QR")
 
-    # Fetch utenti + checkinlog
     utenti = supabase.table("utenti").select("*").order("id").execute().data
     checkin = supabase.table("checkinlog").select("*").execute().data
 
@@ -479,9 +478,47 @@ with tab6:
         st.warning("Nessun utente trovato.")
         st.stop()
 
-    st.info("Seleziona manualmente gli utenti a cui inviare l’email")
+    # =========================================================
+    # LISTA A → UTENTI DA DB (AUTOMATICA)
+    # =========================================================
+    utenti_db = [
+        u for u in utenti_completi
+        if u.get("email") and not u.get("sendedmail", False)
+    ]
 
-    # --- Header tabella ---
+    st.subheader("📦 Utenti dal DB (email NON ancora inviata)")
+    st.write(f"Totale: **{len(utenti_db)}**")
+
+    if st.button(f"📤 Invia email a utenti DB ({len(utenti_db)})"):
+        if not utenti_db:
+            st.warning("Nessun utente valido dal DB.")
+        else:
+            progress = st.progress(0.0)
+            for i, u in enumerate(utenti_db, start=1):
+                try:
+                    qr_bytes = base64.b64decode(u["qrbase64"])
+                    send_email(
+                        to_email=u["email"],
+                        qr_bytes=qr_bytes,
+                        nome=u["nome"],
+                        tipo_pass=u["tipo"]
+                    )
+                    mark_email_sent(u["id"])
+                except Exception as e:
+                    st.error(f"Errore con {u['email']}: {e}")
+
+                progress.progress(i / len(utenti_db))
+
+            st.success("✅ Email inviate agli utenti DB")
+            st.rerun()
+
+    st.markdown("---")
+
+    # =========================================================
+    # LISTA B → SELEZIONE MANUALE
+    # =========================================================
+    st.subheader("🖱️ Selezione manuale utenti")
+
     header = st.columns([1,2,2,3,2,2])
     header[0].markdown("**✔**")
     header[1].markdown("**Nome**")
@@ -490,89 +527,43 @@ with tab6:
     header[4].markdown("**Tipo**")
     header[5].markdown("**Email inviata**")
 
-    # --- Checkbox ---
     for u in utenti_completi:
         cols = st.columns([1,2,2,3,2,2])
         key = f"sendmail_{u['id']}"
         if key not in st.session_state:
             st.session_state[key] = False
 
-        cols[0].checkbox(
-            label="Seleziona",
-            value=st.session_state[key],
-            key=key,
-            label_visibility="collapsed"
-        )
+        cols[0].checkbox("", key=key)
         cols[1].write(u["nome"])
         cols[2].write(u["cognome"])
         cols[3].write(u["email"])
         cols[4].write(u["tipo"])
         cols[5].write("✅" if u.get("sendedmail") else "❌")
 
-    selezionati = [u for u in utenti_completi if st.session_state.get(f"sendmail_{u['id']}", False)]
-    st.markdown("---")
+    utenti_manuali = [
+        u for u in utenti_completi
+        if st.session_state.get(f"sendmail_{u['id']}", False)
+    ]
 
-    if st.button(f"📤 Invia email a {len(selezionati)} utenti"):
-        if not selezionati:
-            st.warning("⚠️ Nessun utente selezionato.")
+    if st.button(f"📤 Invia email a selezionati ({len(utenti_manuali)})"):
+        if not utenti_manuali:
+            st.warning("Nessun utente selezionato.")
         else:
             progress = st.progress(0.0)
-            log_container = st.empty()
-            log_list = []
-
-            for i, u in enumerate(selezionati, start=1):
+            for i, u in enumerate(utenti_manuali, start=1):
                 try:
-                    log_list.append(f"➡️ Elaborando {u['nome']} {u['cognome']} ({u['email']})")
                     qr_bytes = base64.b64decode(u["qrbase64"])
-                    log_list.append("🔹 QR decodificato con successo")
-
-                    # LOG SMTP dettagliato
-                    log_list.append("🔹 Connessione SMTP...")
-                    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
-                        server.set_debuglevel(1)  # stampa log SMTP su console
-                        server.starttls()
-                        log_list.append("🔹 TLS avviato")
-                        server.login(SMTP_USER, SMTP_PASS)
-                        log_list.append("🔹 Login SMTP effettuato")
-                        msg = MIMEMultipart("related")
-                        msg["Subject"] = "TEST INVIO EMAIL"
-                        msg["From"] = SMTP_USER
-                        msg["To"] = u["email"]
-                        msg.attach(MIMEText("Test invio email", "plain"))
-                        server.send_message(msg)
-                        log_list.append("✅ Email inviata con successo")
-
-                    # Aggiorna DB
+                    send_email(
+                        to_email=u["email"],
+                        qr_bytes=qr_bytes,
+                        nome=u["nome"],
+                        tipo_pass=u["tipo"]
+                    )
                     mark_email_sent(u["id"])
-                    log_list.append("📝 Stato DB aggiornato a 'email inviata'")
-
                 except Exception as e:
-                    import traceback
-                    tb = traceback.format_exc()
-                    log_list.append(f"❌ Errore: {e}\n{tb}")
+                    st.error(f"Errore con {u['email']}: {e}")
 
-                log_container.text("\n".join(log_list))
-                progress.progress(i / len(selezionati))
+                progress.progress(i / len(utenti_manuali))
 
-            st.success("✅ Invio email completato")
+            st.success("✅ Email inviate agli utenti selezionati")
             st.rerun()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
