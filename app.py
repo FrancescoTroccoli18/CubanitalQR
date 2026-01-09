@@ -464,10 +464,12 @@ with tab5:
     st.header("🟢 Keep Alive")
     st.write("✅ App attiva")
     st.info("Questa tab serve per mantenere l'app Streamlit e il database Supabase attivi.")
+import subprocess
 
 with tab6:
     st.header("📧 Invio Email con QR")
 
+    # Recupero utenti dal DB
     utenti = supabase.table("utenti").select("*").order("id").execute().data
     checkin = supabase.table("checkinlog").select("*").execute().data
 
@@ -480,14 +482,10 @@ with tab6:
         st.warning("Nessun utente trovato.")
         st.stop()
 
-    # =========================================================
-    # LISTA A → UTENTI DA DB (AUTOMATICA)
-    # =========================================================
-    utenti_db = [
-        u for u in utenti_completi
-        if u.get("email") and not u.get("sendedmail", False)
-    ]
-
+    # ===============================
+    # Lista A → Invio automatico DB
+    # ===============================
+    utenti_db = [u for u in utenti_completi if u.get("email") and not u.get("sendedmail", False)]
     st.subheader("📦 Utenti dal DB (email NON ancora inviata)")
     st.write(f"Totale: **{len(utenti_db)}**")
 
@@ -495,32 +493,20 @@ with tab6:
         if not utenti_db:
             st.warning("Nessun utente valido dal DB.")
         else:
-            progress = st.progress(0.0)
-            for i, u in enumerate(utenti_db, start=1):
-                try:
-                    qr_bytes = base64.b64decode(u["qrbase64"])
-                    send_email(
-                        to_email=u["email"],
-                        qr_bytes=qr_bytes,
-                        nome=u["nome"],
-                        tipo_pass=u["tipo"]
-                    )
-                    mark_email_sent(u["id"])
-                except Exception as e:
-                    st.error(f"Errore con {u['email']}: {e}")
-
-                progress.progress(i / len(utenti_db))
-
+            # Creiamo la lista di ID da passare allo script
+            ids = ",".join(str(u["id"]) for u in utenti_db)
+            # Chiamo lo script esterno
+            st.info("Invio in corso...")
+            subprocess.run(["python", "send_emails.py", "--ids", ids])
             st.success("✅ Email inviate agli utenti DB")
             st.rerun()
 
     st.markdown("---")
 
-    # =========================================================
-    # LISTA B → SELEZIONE MANUALE
-    # =========================================================
+    # ===============================
+    # Lista B → Selezione manuale
+    # ===============================
     st.subheader("🖱️ Selezione manuale utenti")
-
     header = st.columns([1,2,2,3,2,2])
     header[0].markdown("**✔**")
     header[1].markdown("**Nome**")
@@ -542,33 +528,20 @@ with tab6:
         cols[4].write(u["tipo"])
         cols[5].write("✅" if u.get("sendedmail") else "❌")
 
-    utenti_manuali = [
-        u for u in utenti_completi
-        if st.session_state.get(f"sendmail_{u['id']}", False)
-    ]
+    utenti_manuali = [u for u in utenti_completi if st.session_state.get(f"sendmail_{u['id']}", False)]
 
     if st.button(f"📤 Invia email a selezionati ({len(utenti_manuali)})"):
         if not utenti_manuali:
             st.warning("Nessun utente selezionato.")
         else:
-            progress = st.progress(0.0)
-            for i, u in enumerate(utenti_manuali, start=1):
-                try:
-                    qr_bytes = base64.b64decode(u["qrbase64"])
-                    send_email(
-                        to_email=u["email"],
-                        qr_bytes=qr_bytes,
-                        nome=u["nome"],
-                        tipo_pass=u["tipo"]
-                    )
-                    mark_email_sent(u["id"])
-                except Exception as e:
-                    st.error(f"Errore con {u['email']}: {e}")
-
-                progress.progress(i / len(utenti_manuali))
-
+            # Lista email da passare allo script
+            emails = ",".join(u["email"] for u in utenti_manuali)
+            st.info("Invio in corso...")
+            subprocess.run(["python", "send_emails.py", "--emails", emails])
             st.success("✅ Email inviate agli utenti selezionati")
             st.rerun()
+
+
 
 
 
