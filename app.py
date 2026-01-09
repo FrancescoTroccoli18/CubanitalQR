@@ -218,6 +218,8 @@ def send_email(to_email, qr_bytes, nome, tipo_pass):
     img.add_header("Content-ID", "<qrimg>")
     msg.attach(img)
 
+    st.write("FILE ESISTE:", os.path.exists("locandina_cubanital.jpg"))
+    
     # Allego l'immagine di sfondo
     with open("locandina_cubanital.jpg", "rb") as f:
         img = MIMEImage(f.read())
@@ -567,3 +569,4 @@ with tab6:
 
             st.success("✅ Email inviate agli utenti selezionati")
             st.rerun()
+
