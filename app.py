@@ -126,23 +126,38 @@ if not cookies.ready():
 def logout():
     cookies["logged_in"] = "False"
     cookies.save()
+    st.session_state.clear()
     st.rerun()
 
-# Controllo login
+# ------------------ LOGIN CON RICORDAMI ------------------
 logged_in = cookies.get("logged_in", "False")
+
 if logged_in != "True":
     st.header("🔐 Login Admin")
+
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+    remember_me = st.checkbox("💾 Salva dati (ricordami)")
+
     if st.button("Login"):
         if username == "cubanital" and password == "Kabiosile!":
-            cookies["logged_in"] = "True"
-            cookies.save()
+            if remember_me:
+                cookies["logged_in"] = "True"
+                cookies.save()  # persistente
+            else:
+                st.session_state["logged_in"] = True  # solo sessione
+
             st.success("✅ Login effettuato")
             st.rerun()
         else:
             st.error("❌ Username o password errati")
+
     st.stop()
+
+# fallback per login solo-sessione
+if st.session_state.get("logged_in"):
+    pass
+
 
 # ------------------ EMAIL ----------------------
 
@@ -540,6 +555,7 @@ with tab6:
             subprocess.run(["python", "send_emails.py", "--emails", emails])
             st.success("✅ Email inviate agli utenti selezionati")
             st.rerun()
+
 
 
 
